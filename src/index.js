@@ -29,7 +29,7 @@ function safePublicUrl(value) {
   const u=new URL(value);
   if(u.protocol!=="https:" || u.username || u.password || (u.port && u.port!=="443")) return null;
   const h=u.hostname.toLowerCase();
-  if(h==="localhost" || h.endsWith(".localhost") || h==="metadata.google.internal" || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || h==="::1" || h.startsWith("[fc") || h.startsWith("[fd") || h.startsWith("[fe80")) return null;
+  if(h.startsWith("[") || /^(?:\d{1,3}\.){3}\d{1,3}$/.test(h) || h==="localhost" || h.endsWith(".localhost") || h.endsWith(".internal") || h.endsWith(".local") || h==="metadata.google.internal") return null;
   return u;
  } catch { return null; }
 }
@@ -55,7 +55,9 @@ function extractRssEntries(xml,baseUrl) {
   const titleMatch=block.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
   const linkMatch=block.match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
   const atomLink=block.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*\/?\s*>/i);
-  const url=safePublicUrl(new URL((linkMatch?decodeEntities(linkMatch[1]):atomLink?.[1]||"").trim(),baseUrl).href);
+  const rawLink=(linkMatch?decodeEntities(linkMatch[1]):atomLink?.[1]||"").trim();
+  if(!rawLink) continue;
+  let url;try{url=safePublicUrl(new URL(rawLink,baseUrl).href)}catch{continue}
   const title=decodeEntities(titleMatch?.[1]||"");
   const desc=decodeEntities((block.match(/<(?:description|summary|content:encoded)\b[^>]*>([\s\S]*?)<\/(?:description|summary|content:encoded)>/i)||[])[1]||"");
   const date=decodeEntities((block.match(/<(?:pubDate|published|updated)\b[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i)||[])[1]||"");
@@ -252,7 +254,7 @@ async function api(request,env) {
  if(path==="/api/admin/discovery/run" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can run source checks."},403);
-  const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 10").all();
+  const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 2").all();
   const summary={checked:0,discovered:0,duplicates:0,errors:[]};
   for(const source of sources.results||[]) {
    try {
