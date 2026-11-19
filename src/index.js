@@ -173,7 +173,7 @@ async function api(request,env) {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(admin.role!=="owner") return json({error:"Only the Owner can create administrator accounts."},403);
   const b=await request.json().catch(()=>null), email=String(b?.email||"").trim().toLowerCase(), name=String(b?.displayName||"").trim(), role=String(b?.role||"");
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || name.length<2 || name.length>100 || !["admin","editor","reviewer"].includes(role)) return json({error:"Enter a valid email, name and permitted role."},400);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length<2 || name.length>100 || !["admin","editor","reviewer"].includes(role)) return json({error:"Enter a valid email, name and permitted role."},400);
   const exists=await env.DB.prepare("SELECT id FROM admins WHERE email=?").bind(email).first();
   if(exists) return json({error:"An administrator with this email already exists."},409);
   const temporaryPassword=randomToken(18), salt=randomToken(16), hash=await passwordHash(temporaryPassword,salt), id=crypto.randomUUID();
@@ -181,7 +181,7 @@ async function api(request,env) {
   await audit(env,admin.id,"admin_created","admin",id,{email,display_name:name,role});
   return json({ok:true,id,temporaryPassword},201);
  }
- const administratorMatch=path.match(/^\\/api\\/admin\\/administrators\\/([a-f0-9-]+)(?:\\/(reset-password))?$/i);
+ const administratorMatch=path.match(/^\/api\/admin\/administrators\/([a-f0-9-]+)(?:\/(reset-password))?$/i);
  if(administratorMatch) {
   if(admin.role!=="owner") return json({error:"Only the Owner can manage administrator accounts."},403);
   const targetId=administratorMatch[1], action=administratorMatch[2]||null;
