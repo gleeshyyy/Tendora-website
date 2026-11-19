@@ -22,6 +22,11 @@ async function audit(env,adminId,action,type=null,id=null,details={}) {
 }
 async function api(request,env) {
  const url=new URL(request.url), path=url.pathname, method=request.method;
+ if(path==="/api/jobs" && method==="GET") {
+  const today=new Date().toISOString().slice(0,10);
+  const rows=await env.DB.prepare("SELECT id,slug,title,employer,category,employment_type,location,salary_text,description,qualifications,experience,source_url,application_url,deadline,date_verified,published_at FROM jobs WHERE status='published' AND (deadline IS NULL OR deadline='' OR deadline>=?) ORDER BY published_at DESC,created_at DESC LIMIT 100").bind(today).all();
+  return json({jobs:rows.results||[],count:(rows.results||[]).length,checkedAt:today},200,{"cache-control":"public, max-age=60, s-maxage=60"});
+ }
  if(path==="/api/admin/status" && method==="GET") {
   const row=await env.DB.prepare("SELECT COUNT(*) AS count FROM admins").first();
   return json({setupRequired:Number(row.count)===0});
