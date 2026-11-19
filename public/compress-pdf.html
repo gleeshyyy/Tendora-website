@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b35">
+<meta name="description" content="Compress PDF files in your browser with Ghostscript WebAssembly. Your documents stay on your device.">
+<title>Compress PDF — Tendora</title>
+<style>
+:root{--navy:#101b35;--blue:#315cf5;--ink:#18233b;--muted:#68738a;--line:#e7eaf1;--bg:#f7f8fc}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}a{color:inherit;text-decoration:none}.wrap{width:min(900px,calc(100% - 32px));margin:auto}header{height:70px;background:#fff;border-bottom:1px solid var(--line)}.nav{height:100%;display:flex;align-items:center;justify-content:space-between}.brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:var(--navy)}.brand span{color:var(--blue)}.back{font-size:14px;font-weight:700;color:#526078}.lang{border:1px solid var(--line);background:white;border-radius:8px;padding:7px 10px;font-weight:700;color:#526078}.main{padding:48px 0 70px}.eyebrow{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase}.intro h1{font-size:clamp(32px,6vw,44px);line-height:1.12;letter-spacing:-1.5px;color:var(--navy);margin:10px 0}.intro p{color:var(--muted);margin:0;max-width:660px}.panel{background:#fff;border:1px solid var(--line);border-radius:17px;padding:24px;margin-top:28px;box-shadow:0 8px 30px #172b5508}.drop{border:2px dashed #cbd4e8;border-radius:13px;background:#fafbff;padding:32px 18px;text-align:center}.drop strong{display:block;font-size:17px}.drop p{color:var(--muted);font-size:13px;margin:5px 0 16px}.btn{border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:750;padding:12px 18px;font-size:14px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.file{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:18px}.pdficon{width:38px;height:42px;display:grid;place-items:center;border-radius:8px;background:#fff0f0;color:#c43d3d;font-size:11px;font-weight:850;flex:none}.fileinfo{min-width:0;flex:1}.filename{font-size:13px;font-weight:750;overflow-wrap:anywhere}.filesize{font-size:11px;color:var(--muted)}.settings{margin-top:20px}.settings label{display:block;font-size:13px;font-weight:750;margin-bottom:7px}.settings select{width:100%;padding:13px;border:1px solid #dce2ee;border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:#fff}.hint{font-size:12px;color:var(--muted);margin:7px 0 0}.bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.status{font-size:12px;color:var(--muted);min-height:20px}.error{color:#b42318}.result{display:none;margin-top:18px;border:1px solid #b8e3cb;background:#eff9f3;border-radius:11px;padding:14px}.result strong{display:block;font-size:14px}.result p{font-size:12px;color:#52715f;margin:5px 0 12px}.result a{display:inline-block;background:#16865d;color:white;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:750}.privacy{font-size:12px;color:#52715f;background:#eff9f3;border-radius:10px;padding:12px 14px;margin-top:18px}.engine{font-size:11px;color:#8a94a7;margin-top:12px}footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}@media(max-width:560px){.panel{padding:16px}.main{padding-top:34px}.drop{padding:26px 12px}.bottom{align-items:stretch}.bottom .btn{width:100%}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav"><a class="brand" href="/">tendora<span>.</span></a><div style="display:flex;gap:10px;align-items:center"><a class="back" href="/#tools" id="back">← All tools</a><button class="lang" id="lang" type="button">Kinyarwanda</button></div></div></header>
+<main class="wrap main">
+<div class="intro"><div class="eyebrow" id="eyebrow">Free document tool</div><h1 id="heading">Compress PDF</h1><p id="subheading">Reduce the size of a PDF while keeping its pages, text and layout wherever possible. Choose a quality level that fits your needs.</p></div>
+<section class="panel">
+<div class="drop" id="drop"><strong id="dropTitle">Choose a PDF file</strong><p id="dropText">Select one PDF from your device, or drop it here.</p><input id="picker" type="file" accept="application/pdf,.pdf" hidden><button class="btn" id="choose" type="button">Choose PDF file</button></div>
+<div class="file" id="filebox" hidden><div class="pdficon">PDF</div><div class="fileinfo"><div class="filename" id="filename"></div><div class="filesize" id="filesize"></div></div></div>
+<div class="settings"><label for="quality" id="qualityLabel">Compression quality</label><select id="quality"><option value="screen">Smallest file — lower quality (screen)</option><option value="ebook" selected>Recommended — balanced (eBook)</option><option value="printer">Higher quality — larger file (printer)</option><option value="prepress">Prepress — highest quality</option></select><p class="hint" id="qualityHint">eBook is a good balance for sharing and reading on screens. Screen applies stronger image downsampling; printer and prepress preserve more image detail.</p></div>
+<div class="bottom"><div class="status" id="status" role="status" aria-live="polite"></div><button class="btn" id="compress" type="button" disabled>Compress PDF</button></div>
+<div class="result" id="result"><strong id="resultTitle"></strong><p id="resultText"></p><a id="download" href="#" download="compressed.pdf">Download compressed PDF</a></div>
+<div class="privacy" id="privacy">Privacy: your PDF is processed on this device in your browser. The document is not uploaded to Tendora. The compression engine is downloaded separately and may be around 17 MB on first use.</div>
+<div class="engine">Powered by Ghostscript WebAssembly. The first compression may take longer while the engine loads.</div>
+</section>
+</main>
+<footer>© 2026 GLEESHYYY · A GLEESHYYY platform</footer>
+<script type="module">
+const $=id=>document.getElementById(id);
+let file=null,lang='en',lastUrl=null;
+const words={
+en:{back:'← All tools',eyebrow:'Free document tool',heading:'Compress PDF',sub:'Reduce the size of a PDF while keeping its pages, text and layout wherever possible. Choose a quality level that fits your needs.',drop:'Choose a PDF file',dropText:'Select one PDF from your device, or drop it here.',choose:'Choose PDF file',quality:'Compression quality',qualityHint:'eBook is a good balance for sharing and reading on screens. Screen applies stronger image downsampling; printer and prepress preserve more image detail.',screen:'Smallest file — lower quality (screen)',ebook:'Recommended — balanced (eBook)',printer:'Higher quality — larger file (printer)',prepress:'Prepress — highest quality',compress:'Compress PDF',working:'Loading compression engine and optimizing your PDF…',loading:'Loading Ghostscript WebAssembly…',done:'Compression complete',saved:'smaller',larger:'larger',same:'about the same size',download:'Download compressed PDF',privacy:'Privacy: your PDF is processed on this device in your browser. The document is not uploaded to Tendora. The compression engine is downloaded separately and may be around 17 MB on first use.',need:'Choose a PDF file first.',bad:'Could not process this PDF. It may be damaged, encrypted, or unsupported.',lib:'The compression engine could not load. Check your internet connection and try again.',nochange:'The optimized PDF is not smaller than the original. You can still download it and compare.',status:'Original',resultSize:'Compressed',savedBy:'Size change',error:'Compression failed. Try another quality level or a different PDF.'},
+rw:{back:'← Ibikoresho byose',eyebrow:'Igikoresho cy’inyandiko ku buntu',heading:'Gabanya ingano ya PDF',sub:'Gabanya ingano ya PDF ugumane impapuro, inyandiko n’imiterere yayo uko bishoboka. Hitamo ireme rikubereye.',drop:'Hitamo dosiye ya PDF',dropText:'Hitamo dosiye imwe ya PDF muri telefone cyangwa uyishyire hano.',choose:'Hitamo dosiye ya PDF',quality:'Urwego rwo kugabanya ingano',qualityHint:'eBook itanga uburinganire bwiza hagati y’ingano n’ireme. Screen igabanya cyane ireme ry’amashusho; printer na prepress bigumana utuntu twinshi.',screen:'Ingano nto cyane — ireme ryo hasi (screen)',ebook:'Byiza kurushaho — hagati (eBook)',printer:'Ireme ryo hejuru — dosiye nini (printer)',prepress:'Prepress — ireme ryo hejuru cyane',compress:'Gabanya PDF',working:'Porogaramu irimo gutegurwa no kugabanya PDF…',loading:'Gufungura Ghostscript WebAssembly…',done:'PDF yagabanyijwe neza',saved:'nto kurushaho',larger:'nini kurushaho',same:'ingana hafi',download:'Kuramo PDF yagabanyijwe',privacy:'Umutekano: PDF yawe itunganyirizwa muri browser yawe. Ntabwo ijyanwa kuri Tendora. Porogaramu yo kuyigabanya irabanza gukururwa, ishobora kuba hafi ya 17 MB.',need:'Banza uhitemo dosiye ya PDF.',bad:'Ntibyashobotse gutunganya iyi PDF. Ishobora kuba yangiritse, ifunze cyangwa idashyigikiwe.',lib:'Porogaramu yo kugabanya PDF ntiyafungutse. Reba internet wongere ugerageze.',nochange:'PDF yavuyemo ntabwo ari nto kurusha iy’umwimerere. Ushobora kuyikuramo ukagereranya.',status:'Umwimerere',resultSize:'Yagabanyijwe',savedBy:'Impinduka ku ngano',error:'Kugabanya PDF byanze. Gerageza urundi rwego cyangwa indi PDF.'}
+};
+const t=k=>words[lang][k];
+function status(s,err=false){$('status').textContent=s;$('status').className='status'+(err?' error':'')}
+function size(n){return n<1024*1024?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'}
+function updateLang(){const w=words[lang];for(const id of ['back','eyebrow','heading','subheading','dropTitle','dropText','choose','qualityLabel','qualityHint','compress','privacy'])$(id).textContent=w[id]||$(id).textContent;$('quality').options[0].text=w.screen;$('quality').options[1].text=w.ebook;$('quality').options[2].text=w.printer;$('quality').options[3].text=w.prepress;$('lang').textContent=lang==='en'?'Kinyarwanda':'English';}
+$('lang').addEventListener('click',()=>{lang=lang==='en'?'rw':'en';updateLang()});
+function chooseFile(f){if(!f)return;if(f.type!=='application/pdf'&&!f.name.toLowerCase().endsWith('.pdf')){status(t('bad'),true);return}file=f;$('filebox').hidden=false;$('filename').textContent=f.name;$('filesize').textContent=size(f.size);$('compress').disabled=false;$('result').style.display='none';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}status('')}
+$('choose').addEventListener('click',()=>$('picker').click());$('picker').addEventListener('change',e=>{chooseFile(e.target.files[0]);e.target.value=''});
+$('drop').addEventListener('dragover',e=>{e.preventDefault();$('drop').style.borderColor='#315cf5'});$('drop').addEventListener('dragleave',()=>{$('drop').style.borderColor='#cbd4e8'});$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').style.borderColor='#cbd4e8';chooseFile(e.dataTransfer.files[0])});
+$('compress').addEventListener('click',async()=>{
+ if(!file){status(t('need'),true);return}
+ const button=$('compress');button.disabled=true;status(t('loading'));$('result').style.display='none';
+ let gs=null;
+ try{
+  const {load}=await import('https://esm.sh/@wasm-zoo/ghostscript@0.7.2');
+  gs=await load();status(t('working'));
+  const input=new Uint8Array(await file.arrayBuffer());
+  const preset=$('quality').value;
+  const resolution=preset==='screen'?72:preset==='ebook'?150:preset==='printer'?300:600;
+  const args=['-dSAFER','-dBATCH','-dNOPAUSE','-dQUIET','-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dPDFSETTINGS=/'+preset,'-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dDownsampleColorImages=true','-dColorImageDownsampleType=/Bicubic','-dColorImageResolution='+resolution,'-dDownsampleGrayImages=true','-dGrayImageDownsampleType=/Bicubic','-dGrayImageResolution='+resolution,'-dDownsampleMonoImages=true','-dMonoImageResolution='+Math.max(150,resolution),'-sOutputFile=/out/compressed.pdf','/input/source.pdf'];
+  const result=await gs.exec(args,{files:[{name:'/input/source.pdf',data:input}],dirs:['/out'],outputs:['/out/compressed.pdf']});
+  const output=result.files&&result.files.find(x=>x.name==='/out/compressed.pdf')||result.files&&result.files[0];
+  if(!output||!output.data)throw new Error('No PDF output returned');
+  const blob=new Blob([output.data],{type:'application/pdf'});
+  if(lastUrl)URL.revokeObjectURL(lastUrl);
+  lastUrl=URL.createObjectURL(blob);
+  const delta=file.size-blob.size;
+  const pct=Math.abs(delta)/file.size*100;
+  let change=delta>0?pct.toFixed(1)+'% '+t('saved'):delta<0?pct.toFixed(1)+'% '+t('larger'):t('same');
+  $('resultTitle').textContent=t('done');
+  $('resultText').textContent=t('status')+': '+size(file.size)+' · '+t('resultSize')+': '+size(blob.size)+' · '+t('savedBy')+': '+change+(delta<=0?' — '+t('nochange'):'');
+  $('download').href=lastUrl;$('download').download=file.name.replace(/\.pdf$/i,'')+'-compressed.pdf';$('download').textContent=t('download');
+  $('result').style.display='block';status('');
+ }catch(e){console.error(e);status(t('error')+(e&&e.message?': '+e.message:''),true)}
+ finally{if(gs&&gs.dispose)gs.dispose();button.disabled=false}
+});
+updateLang();
+</script>
+</body>
+</html>
