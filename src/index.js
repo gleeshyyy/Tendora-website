@@ -1,5 +1,5 @@
 const SESSION_SECONDS = 60 * 60 * 12;
-const PBKDF2_ITERATIONS = 310000;
+const PBKDF2_ITERATIONS = 100000;
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...headers}});
 const b64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const randomToken = (n=32) => { const b=new Uint8Array(n); crypto.getRandomValues(b); return b64url(b); };
