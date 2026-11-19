@@ -2,6 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Add page numbers to PDF documents in your browser with Tendora."><title>Add Page Numbers to PDF | Tendora</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#18233b;background:#f7f8fc}*{box-sizing:border-box}body{margin:0;line-height:1.55}header{height:70px;background:#fff;border-bottom:1px solid #e7eaf1}.nav{width:min(900px,calc(100% - 32px));height:100%;margin:auto;display:flex;align-items:center;justify-content:space-between}.brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:#101b35;text-decoration:none}.brand span{color:#315cf5}.back{font-size:14px;font-weight:700;color:#526078;text-decoration:none}.wrap{width:min(900px,calc(100% - 32px));margin:44px auto}.intro h1{font-size:clamp(30px,6vw,42px);letter-spacing:-1.5px;margin:8px 0}.intro p,.muted{color:#68738a;line-height:1.6}.eyebrow{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#315cf5}.panel{background:#fff;border:1px solid #e7eaf1;border-radius:17px;padding:clamp(18px,4vw,28px);margin-top:25px;box-shadow:0 8px 30px #172b5508}.upload{border:2px dashed #cbd4e8;border-radius:13px;background:#fafbff;padding:24px}.upload input{display:block;margin-top:12px;max-width:100%}.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:22px 0}.settings label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:750;color:#526078}.settings input,.settings select{width:100%;padding:11px;border:1px solid #d9deeb;border-radius:9px;background:white;color:#18233b;font:inherit}.check{display:flex;gap:9px;align-items:center;font-size:14px;color:#526078;margin:12px 0}.btn{border:0;border-radius:10px;background:#315cf5;color:#fff;font-weight:750;padding:13px 20px;font-size:14px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.light{background:#edf1ff;color:#315cf5}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.status{margin-top:16px;font-size:13px;color:#526078;white-space:pre-wrap;line-height:1.6}.privacy{font-size:12px;color:#52715f;background:#eff9f3;border-radius:10px;padding:12px 14px;margin-top:18px}footer{text-align:center;color:#8a94a7;padding:22px;font-size:12px}@media(max-width:540px){.wrap{margin-top:32px}.panel{padding:17px}}
+
+/* Tendora mobile usability baseline */
+html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,svg,canvas,video{max-width:100%;height:auto}input,select,textarea,button{max-width:100%;font:inherit}button,a,input,select,textarea{touch-action:manipulation}button,input[type="button"],input[type="submit"],.btn,.apply{min-height:42px}
+@media(max-width:640px){header .nav{gap:10px;flex-wrap:wrap}header .back{font-size:13px}main,.main{padding-top:28px}.panel,.card{border-radius:13px}.panel{padding:16px!important}.settings{grid-template-columns:minmax(0,1fr)!important}.filters{grid-template-columns:minmax(0,1fr)!important}input,select,textarea{font-size:16px!important;min-width:0}button,.btn,.apply{min-height:44px}.wrap{max-width:100%}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script><style id="tendora-progress-style">
 #tendora-work-progress{position:fixed;z-index:9999;left:50%;bottom:18px;transform:translate(-50%,18px);width:min(440px,calc(100vw - 28px));padding:13px 15px 14px;background:#fff;border:1px solid #e3e9f4;border-radius:14px;box-shadow:0 12px 36px #14213d24;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s}
@@ -17,6 +21,16 @@
 @keyframes tp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
 @media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
 </style>
+
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/add-page-numbers.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tendora">
+<meta property="og:title" content="Add Page Numbers to PDF | Tendora">
+<meta property="og:description" content="Add page numbers to PDF documents in your browser with Tendora.">
+<meta property="og:url" content="https://tendora.gleesh.workers.dev/add-page-numbers.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Add Page Numbers to PDF | Tendora">
+<meta name="twitter:description" content="Add page numbers to PDF documents in your browser with Tendora.">
 </head>
 <body><header><div class="nav"><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">← All tools</a></div></header>
 <main class="wrap"><div class="intro"><div class="eyebrow">Free document tool</div><h1>Add Page Numbers to PDF</h1><p>Number the pages in your PDF, choose where the numbers appear, and download a new copy.</p></div>
