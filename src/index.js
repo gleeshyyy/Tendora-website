@@ -20,6 +20,72 @@ async function currentAdmin(request,env) {
 async function audit(env,adminId,action,type=null,id=null,details={}) {
  await env.DB.prepare("INSERT INTO admin_audit_logs(id,admin_id,action,entity_type,entity_id,details_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),adminId,action,type,id,JSON.stringify(details)).run();
 }
+
+function decodeEntities(value) {
+ return String(value||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\s+/g," ").trim();
+}
+function safePublicUrl(value) {
+ try {
+  const u=new URL(value);
+  if(u.protocol!=="https:" || u.username || u.password || (u.port && u.port!=="443")) return null;
+  const h=u.hostname.toLowerCase();
+  if(h==="localhost" || h.endsWith(".localhost") || h==="metadata.google.internal" || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || h==="::1" || h.startsWith("[fc") || h.startsWith("[fd") || h.startsWith("[fe80")) return null;
+  return u;
+ } catch { return null; }
+}
+async function boundedText(response,maxBytes=1000000) {
+ const declared=Number(response.headers.get("content-length")||0);
+ if(declared>maxBytes) throw new Error("Source page is larger than the 1 MB safety limit.");
+ if(!response.body) return "";
+ const reader=response.body.getReader(), chunks=[]; let size=0;
+ try {
+  while(true) {
+   const {done,value}=await reader.read(); if(done) break;
+   size+=value.byteLength; if(size>maxBytes){await reader.cancel();throw new Error("Source page exceeded the 1 MB safety limit.");}
+   chunks.push(value);
+  }
+ } finally { try{reader.releaseLock()}catch{} }
+ const all=new Uint8Array(size);let offset=0;for(const chunk of chunks){all.set(chunk,offset);offset+=chunk.byteLength;}
+ return new TextDecoder("utf-8",{fatal:false}).decode(all);
+}
+function extractRssEntries(xml,baseUrl) {
+ const blocks=[...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)].slice(0,30), out=[];
+ for(const match of blocks) {
+  const block=match[2];
+  const titleMatch=block.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+  const linkMatch=block.match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
+  const atomLink=block.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*\/?\s*>/i);
+  const url=safePublicUrl(new URL((linkMatch?decodeEntities(linkMatch[1]):atomLink?.[1]||"").trim(),baseUrl).href);
+  const title=decodeEntities(titleMatch?.[1]||"");
+  const desc=decodeEntities((block.match(/<(?:description|summary|content:encoded)\b[^>]*>([\s\S]*?)<\/(?:description|summary|content:encoded)>/i)||[])[1]||"");
+  const date=decodeEntities((block.match(/<(?:pubDate|published|updated)\b[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i)||[])[1]||"");
+  if(title.length>=4 && url) out.push({title:title.slice(0,240),url:url.href,description:desc.slice(0,1200),date});
+ }
+ return out;
+}
+function extractPageLinks(html,baseUrl) {
+ const base=new URL(baseUrl), out=[], seen=new Set();
+ const re=/<a\b([^>]*?)href\s*=\s*(["'])(.*?)\2([^>]*)>([\s\S]*?)<\/a>/gi;
+ for(const m of html.matchAll(re)) {
+  const title=decodeEntities(m[5]), raw=m[3].trim();
+  if(title.length<5 || title.length>240 || !/(job|career|vacanc|position|recruit|employment|apply|opportunit|internship|consultant)/i.test(title+" "+raw)) continue;
+  let url;try{url=new URL(raw,base)}catch{continue}
+  if(url.protocol!=="https:" || url.hostname!==base.hostname || url.href===base.href || seen.has(url.href)) continue;
+  seen.add(url.href);out.push({title,url:url.href,description:""});
+  if(out.length>=30) break;
+ }
+ return out;
+}
+async function discoverFromSource(source) {
+ const target=safePublicUrl(source.careers_url); if(!target) throw new Error("Source URL is not a permitted public HTTPS address.");
+ const response=await fetch(target.href,{method:"GET",redirect:"manual",signal:AbortSignal.timeout(12000),headers:{"User-Agent":"TendoraJobDiscovery/1.0 (+https://tendora.gleesh.workers.dev)","Accept":source.monitoring_method==="rss"?"application/rss+xml, application/atom+xml, application/xml, text/xml":"text/html,application/xhtml+xml"}});
+ if(response.status>=300 && response.status<400) throw new Error("Redirected source pages are not followed; update the saved URL to the final HTTPS address.");
+ if(!response.ok) throw new Error("Source returned HTTP "+response.status+".");
+ const type=(response.headers.get("content-type")||"").toLowerCase(), body=await boundedText(response);
+ let entries=source.monitoring_method==="rss" || /xml|rss|atom/.test(type)?extractRssEntries(body,target.href):extractPageLinks(body,target.href);
+ return entries.slice(0,30);
+}
+
 async function api(request,env) {
  const url=new URL(request.url), path=url.pathname, method=request.method;
  if(path==="/api/jobs" && method==="GET") {
@@ -178,6 +244,71 @@ async function api(request,env) {
   await env.DB.prepare("UPDATE job_sources SET name=?,organization_type=?,website_url=?,careers_url=?,monitoring_method=?,monitoring_enabled=?,notes=?,updated_at=? WHERE id=?").bind(name,organizationType||null,website,careers,monitoring,enabled,notes||null,new Date().toISOString(),id).run();
   await audit(env,admin.id,"job_source_updated","job_source",id,{name,monitoring_method:monitoring,monitoring_enabled:enabled});
   return json({ok:true});
+ }
+ if(path==="/api/admin/discovery" && method==="GET") {
+  const rows=await env.DB.prepare("SELECT c.id,c.source_id,c.title,c.employer,c.source_url,c.application_url,c.deadline,c.detected_at,c.status,c.notes,s.name AS source_name FROM discovery_candidates c LEFT JOIN job_sources s ON s.id=c.source_id ORDER BY c.detected_at DESC LIMIT 200").all();
+  return json({candidates:rows.results||[]});
+ }
+ if(path==="/api/admin/discovery/run" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can run source checks."},403);
+  const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 10").all();
+  const summary={checked:0,discovered:0,duplicates:0,errors:[]};
+  for(const source of sources.results||[]) {
+   try {
+    const entries=await discoverFromSource(source); let added=0,duplicates=0;
+    for(const entry of entries) {
+     const normalized=entry.url.split("#")[0].replace(/\/$/,"");
+     const prior=await env.DB.prepare("SELECT id FROM discovery_candidates WHERE source_url=? LIMIT 1").bind(normalized).first();
+     const existingJob=await env.DB.prepare("SELECT id FROM jobs WHERE lower(trim(title))=lower(trim(?)) AND lower(trim(employer))=lower(trim(?)) LIMIT 1").bind(entry.title,source.name).first();
+     if(prior) continue;
+     const id=crypto.randomUUID(), status=existingJob?"duplicate":"new";
+     await env.DB.prepare("INSERT INTO discovery_candidates(id,source_id,title,employer,source_url,application_url,status,notes) VALUES(?,?,?,?,?,?,?,?)").bind(id,source.id,entry.title,source.name,normalized,normalized,status,entry.description||null).run();
+     if(existingJob) duplicates++; else added++;
+    }
+    await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),"success: "+entries.length+" entries",source.id).run();
+    summary.checked++;summary.discovered+=added;summary.duplicates+=duplicates;
+   } catch(error) {
+    const message=String(error?.message||error).slice(0,240);
+    await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),"error: "+message,source.id).run();
+    summary.errors.push({source:source.name,error:message});
+   }
+  }
+  await audit(env,admin.id,"discovery_sources_checked","discovery",null,summary);
+  return json(summary);
+ }
+ const candidatePrefix="/api/admin/discovery/";
+ const candidatePath=path.startsWith(candidatePrefix)?path.slice(candidatePrefix.length):"";
+ const candidateMatch=candidatePath.match(/^([a-f0-9-]+)(?:\/(convert|reject|duplicate|review))?$/i);
+ if(candidateMatch) {
+  const candidateId=candidateMatch[1], action=candidateMatch[2]||null;
+  const candidate=await env.DB.prepare("SELECT * FROM discovery_candidates WHERE id=?").bind(candidateId).first();
+  if(!candidate) return json({error:"Discovery candidate not found."},404);
+  if(method==="POST" && action) {
+   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+   if(!["owner","admin","editor","reviewer"].includes(admin.role)) return json({error:"You do not have permission to review discovery candidates."},403);
+   if(action==="review") {
+    await env.DB.prepare("UPDATE discovery_candidates SET status='reviewing' WHERE id=? AND status='new'").bind(candidateId).run();
+    await audit(env,admin.id,"discovery_candidate_reviewing","discovery_candidate",candidateId,{title:candidate.title});
+    return json({ok:true,status:"reviewing"});
+   }
+   if(action==="reject" || action==="duplicate") {
+    const status=action==="duplicate"?"duplicate":"rejected";
+    await env.DB.prepare("UPDATE discovery_candidates SET status=? WHERE id=? AND status IN ('new','reviewing')").bind(status,candidateId).run();
+    await audit(env,admin.id,"discovery_candidate_"+status,"discovery_candidate",candidateId,{title:candidate.title});
+    return json({ok:true,status});
+   }
+   if(action==="convert") {
+    if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to create vacancies."},403);
+    if(!["new","reviewing"].includes(candidate.status)) return json({error:"Only active discovery candidates can be converted."},409);
+    const id=crypto.randomUUID(),slug=(candidate.title+"-"+candidate.employer).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,90)+"-"+id.slice(0,8);
+    const description="Discovered from an official recruitment source. Review the original vacancy, complete all details and verify the deadline before publication.";
+    await env.DB.prepare("INSERT INTO jobs(id,slug,title,employer,description,source_url,application_url,status,created_by) VALUES(?,?,?,?,?,?,?,'pending_verification',?)").bind(id,slug,candidate.title,candidate.employer||"Unknown employer",description,candidate.source_url,candidate.application_url||candidate.source_url,admin.id).run();
+    await env.DB.prepare("UPDATE discovery_candidates SET status='converted',linked_job_id=? WHERE id=?").bind(id,candidateId).run();
+    await audit(env,admin.id,"discovery_candidate_converted","discovery_candidate",candidateId,{job_id:id,title:candidate.title});
+    return json({ok:true,jobId:id,status:"pending_verification"});
+   }
+  }
  }
  return json({error:"Not found."},404);
 }
