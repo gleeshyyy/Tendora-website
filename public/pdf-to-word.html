@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF to Word | Tendora</title>
+<meta name="description" content="Convert text-based PDF files into editable Word documents in your browser with Tendora.">
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e9f2;padding:17px max(20px,calc((100% - 1040px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:24px;font-weight:850;color:#172033;text-decoration:none;letter-spacing:-1px}.brand span{color:#635bdb}.back{color:#5149c8;text-decoration:none;font-weight:650}.wrap{max-width:900px;margin:42px auto;padding:0 18px}.panel{background:white;border:1px solid #e5e9f2;border-radius:18px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 35px #18264a0b}h1{font-size:clamp(28px,5vw,40px);letter-spacing:-1.3px;margin:0 0 10px}.muted{color:#64708a;line-height:1.65}.upload{border:2px dashed #c9cde0;border-radius:13px;padding:22px;margin:22px 0;background:#fafaff}input{padding:10px;border:1px solid #d9deeb;border-radius:9px;background:#fff;color:#172033;max-width:100%;margin-top:10px}.settings{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}.settings label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:700;color:#59647c}select{padding:10px;border:1px solid #d9deeb;border-radius:9px;background:#fff;color:#172033}button{border:0;border-radius:10px;background:#5b52d6;color:white;padding:13px 20px;font-weight:750;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#edf0fa;color:#303b57}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.status{margin-top:16px;font-size:14px;color:#46516a;white-space:pre-wrap;line-height:1.6}.note{font-size:13px;background:#f4f5ff;padding:12px 14px;border-radius:10px;color:#59617a;line-height:1.6}footer{text-align:center;color:#788198;padding:28px;font-size:13px}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+</head>
+<body>
+<header><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">All tools ←</a></header>
+<main class="wrap"><section class="panel">
+<h1>PDF to Word</h1>
+<p class="muted">Turn a text-based PDF into an editable Microsoft Word document (.docx). Your PDF is processed locally in this browser and is not uploaded to Tendora.</p>
+<div class="upload"><strong>Select a PDF file</strong><br><input id="file" type="file" accept=".pdf,application/pdf"><p class="muted" id="filename">No file selected</p></div>
+<div class="settings">
+<label>Document font<select id="font"><option value="Arial">Arial</option><option value="Calibri" selected>Calibri</option><option value="Times New Roman">Times New Roman</option></select></label>
+<label>Text size<select id="size"><option value="10">10 pt</option><option value="11" selected>11 pt</option><option value="12">12 pt</option><option value="14">14 pt</option></select></label>
+</div>
+<div class="note"><strong>Important:</strong> This tool extracts selectable text and rebuilds it as editable Word paragraphs. It does not reproduce the original PDF layout, columns, tables, images, signatures or exact fonts. Scanned/image-only PDFs need OCR first; they may produce an empty document here. Password-protected PDFs are not supported.</div>
+<div class="actions"><button id="make" disabled>Convert to Word</button><button id="reset" class="secondary">Clear</button></div>
+<div class="status" id="status" aria-live="polite"></div>
+</section></main><footer>© 2026 GLEESHYYY · TENDORA</footer>
+<script>
+const fileInput=document.getElementById('file'),status=document.getElementById('status'),make=document.getElementById('make');
+let selectedFile=null;
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+fileInput.addEventListener('change',()=>{
+ selectedFile=fileInput.files&&fileInput.files[0]||null;
+ if(!selectedFile){make.disabled=true;return;}
+ if(!/\.pdf$/i.test(selectedFile.name)||selectedFile.type&&selectedFile.type!=='application/pdf'){status.textContent='Please choose a PDF file.';selectedFile=null;make.disabled=true;fileInput.value='';return;}
+ if(selectedFile.size>100*1024*1024){status.textContent='This file is larger than the 100 MB limit. Choose a smaller PDF.';selectedFile=null;make.disabled=true;fileInput.value='';return;}
+ document.getElementById('filename').textContent=selectedFile.name+' · '+(selectedFile.size/1024/1024).toFixed(2)+' MB';
+ status.textContent='PDF selected. Ready to convert.';make.disabled=false;
+});
+function buildLines(items){
+ const usable=items.filter(x=>x.str&&x.str.trim()).map(x=>({text:x.str.trim(),x:x.transform[4],y:x.transform[5],w:x.width||0}));
+ usable.sort((a,b)=>b.y-a.y||a.x-b.x);
+ const rows=[];
+ for(const item of usable){let row=rows.find(r=>Math.abs(r.y-item.y)<2.5);if(!row){row={y:item.y,items:[]};rows.push(row);}row.items.push(item);}
+ rows.sort((a,b)=>b.y-a.y);
+ return rows.map(row=>{
+   row.items.sort((a,b)=>a.x-b.x);let out='';
+   for(let i=0;i<row.items.length;i++){const cur=row.items[i],prev=row.items[i-1];if(i){const gap=cur.x-(prev.x+prev.w);out+=(gap>2?' ':'');}out+=cur.text;}
+   return out.trim();
+ }).filter(Boolean);
+}
+make.addEventListener('click',async()=>{
+ if(!selectedFile)return;
+ if(!window.pdfjsLib||!window.docx){status.textContent='A required conversion library did not load. Check your internet connection and reload the page.';return;}
+ make.disabled=true;status.textContent='Reading PDF…';
+ try{
+  const bytes=new Uint8Array(await selectedFile.arrayBuffer());
+  const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+  const children=[];let totalChars=0,emptyPages=0;
+  for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+   status.textContent='Extracting text from page '+pageNo+' of '+pdf.numPages+'…';
+   const page=await pdf.getPage(pageNo),content=await page.getTextContent();
+   const lines=buildLines(content.items);const pageText=lines.join('\n').trim();
+   if(!pageText)emptyPages++;
+   if(pageNo>1)children.push(new docx.Paragraph({children:[new docx.TextRun('')],pageBreakBefore:true}));
+   if(pageText){
+    for(const line of lines){children.push(new docx.Paragraph({children:[new docx.TextRun({text:line,font:document.getElementById('font').value,size:Number(document.getElementById('size').value)*2})],spacing:{after:100,line:300}}));}
+    totalChars+=pageText.length;
+   }else{
+    children.push(new docx.Paragraph({children:[new docx.TextRun({text:'[No selectable text found on this page]',italics:true,color:'888888'})]}));
+   }
+  }
+  if(totalChars===0)throw new Error('No selectable text was found. This appears to be a scanned or image-only PDF. Use OCR to make the text selectable, then try again.');
+  status.textContent='Building editable Word document…';
+  const document=new docx.Document({sections:[{properties:{},children}]});
+  const blob=await docx.Packer.toBlob(document);
+  const base=selectedFile.name.replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]/g,'_')||'document';
+  const outName=base+'-tendora-converted.docx';
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=outName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  status.textContent='Word document created: '+outName+'\nPages: '+pdf.numPages+' · Extracted characters: '+totalChars.toLocaleString()+(emptyPages?'\nPages without selectable text: '+emptyPages:'')+'\nYour original PDF was not changed.';
+ }catch(err){status.textContent='Conversion failed: '+(err&&err.message?err.message:'Unable to read this PDF.');}
+ finally{make.disabled=!selectedFile;}
+});
+document.getElementById('reset').addEventListener('click',()=>{fileInput.value='';selectedFile=null;make.disabled=true;document.getElementById('filename').textContent='No file selected';status.textContent='';});
+</script></body></html>
