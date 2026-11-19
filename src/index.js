@@ -407,7 +407,7 @@ async function api(request,env) {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can run source checks."},403);
   const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 8").all();
-  const summary={checked:0,discovered:0,duplicates:0,errors:[],sources:[]};
+  const summary={checked:0,discovered:0,duplicates:0,alreadySeen:0,errors:[],sources:[]};
   const results=await Promise.all((sources.results||[]).map(async source=>{
    try {
     const entries=await discoverFromSource(source); let added=0,duplicates=0,alreadySeen=0;
@@ -421,7 +421,7 @@ async function api(request,env) {
      if(existingJob) duplicates++; else added++;
     }
     const checkedAt=new Date().toISOString();
-    const status=entries.length?"checked: "+entries.length+" vacancy link(s)":"checked: no vacancies found";
+    const status=entries.length?entries.length+" links: "+added+" new, "+duplicates+" duplicates, "+alreadySeen+" already recorded":"checked: no vacancies found";
     await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(checkedAt,status,source.id).run();
     return {source:source.name,status,entries:entries.length,discovered:added,duplicates,alreadySeen};
    } catch(error) {
@@ -430,7 +430,7 @@ async function api(request,env) {
     return {source:source.name,status:"error: "+message,error:message,entries:0,discovered:0,duplicates:0,alreadySeen:0};
    }
   }));
-  for(const item of results){summary.checked++;summary.discovered+=item.discovered;summary.duplicates+=item.duplicates;if(item.error)summary.errors.push({source:item.source,error:item.error});summary.sources.push(item);}
+  for(const item of results){summary.checked++;summary.discovered+=item.discovered;summary.duplicates+=item.duplicates;summary.alreadySeen+=item.alreadySeen;if(item.error)summary.errors.push({source:item.source,error:item.error});summary.sources.push(item);}
   await audit(env,admin.id,"discovery_sources_checked","discovery",null,summary);
   return json(summary);
  }
