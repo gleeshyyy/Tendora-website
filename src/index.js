@@ -106,14 +106,14 @@ function extractPageLinks(html,baseUrl) {
   let title=decodeEntities(m[5]).replace(/\s+/g," ").trim();
   const path=url.pathname.toLowerCase();
   if(isExcludedJobLink(url,title)) continue;
-  const jobPath=/\/(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?)(?:\/|$)/i.test(path);
+  const jobPath=/\/(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?|open-roles?|openings?)(?:\/|$)/i.test(path);
   const leaf=path.split("/").filter(Boolean).pop()||"";
-  if(/^(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?)$/i.test(leaf)) continue;
+  if(/^(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?|open-roles?|openings?)$/i.test(leaf)) continue;
   const strongTitle=/\b(intern|internship|trainee|graduate|assistant|analyst|accountant|engineer|technician|officer|manager|director|coordinator|specialist|supervisor|consultant|teacher|driver|nurse|doctor|sales|cashier|developer|designer|pilot|captain|operator|foreman|advisor|adviser|head of|chief)\b/i.test(title);
   if(!jobPath && !strongTitle) continue;
   if(!title || /^(apply|apply now|view|view details|read more|learn more|more|details|open|click here)$/i.test(title)) {
    let slug="";try{slug=decodeURIComponent(path.split("/").filter(Boolean).pop()||"")}catch{}
-   if(!slug || /^(jobs?|careers?|vacancies|opportunities|recruitment|positions?)$/i.test(slug)) continue;
+   if(!slug || !/[a-z]/i.test(slug) || /^(jobs?|careers?|vacancies|opportunities|recruitment|positions?|open-roles?|openings?)$/i.test(slug)) continue;
    title=slug.replace(/[-_]+/g," ").replace(/\s+/g," ").trim().split(" ").map(w=>/^[A-Z0-9]{2,}$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");
   }
   title=title.replace(/\s+/g," ").trim();
