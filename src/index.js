@@ -85,8 +85,8 @@ function extractJsonLdJobs(html,baseUrl) {
    try{target=new URL(value.url||value.sameAs||baseUrl,baseUrl).href}catch{}
    const safe=safePublicUrl(target);
    const description=decodeEntities(value.description||"").slice(0,1200);
-   const date=String(value.validThrough||value.datePosted||"").slice(0,40);
-   if(title.length>=5 && safe && !isExcludedJobLink(safe,title)) out.push({title,url:safe.href,employer:employer||null,description,date});
+   const deadline=String(value.validThrough||"").slice(0,40);
+   if(title.length>=5 && safe && !isExcludedJobLink(safe,title)) out.push({title,url:safe.href,employer:employer||null,description,deadline});
   }
   for(const [key,val] of Object.entries(value)) if(key==="@graph" || (val&&typeof val==="object")) visit(val);
  };
@@ -415,7 +415,7 @@ async function api(request,env) {
      if(prior){alreadySeen++;continue;}
      const existingJob=entry.employer?await env.DB.prepare("SELECT id FROM jobs WHERE lower(trim(title))=lower(trim(?)) AND lower(trim(employer))=lower(trim(?)) LIMIT 1").bind(entry.title,entry.employer).first():null;
      const id=crypto.randomUUID(), status=existingJob?"duplicate":"new";
-     await env.DB.prepare("INSERT INTO discovery_candidates(id,source_id,title,employer,source_url,application_url,deadline,status,notes) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,source.id,entry.title,entry.employer||null,normalized,entry.applicationUrl||normalized,entry.date||null,status,entry.description||null).run();
+     await env.DB.prepare("INSERT INTO discovery_candidates(id,source_id,title,employer,source_url,application_url,deadline,status,notes) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,source.id,entry.title,entry.employer||null,normalized,entry.applicationUrl||normalized,entry.deadline||null,status,entry.description||null).run();
      if(existingJob) duplicates++; else added++;
     }
     const checkedAt=new Date().toISOString();
