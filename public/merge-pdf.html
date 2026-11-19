@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b35">
+<meta name="description" content="Merge multiple PDF files into one document in your browser. Your files stay on your device.">
+<title>Merge PDF — Tendora</title>
+<style>
+:root{--navy:#101b35;--blue:#315cf5;--ink:#18233b;--muted:#68738a;--line:#e7eaf1;--bg:#f7f8fc;--green:#16865d}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}a{color:inherit;text-decoration:none}.wrap{width:min(900px,calc(100% - 32px));margin:auto}header{height:70px;background:#fff;border-bottom:1px solid var(--line)}.nav{height:100%;display:flex;align-items:center;justify-content:space-between}.brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:var(--navy)}.brand span{color:var(--blue)}.back{font-size:14px;font-weight:700;color:#526078}.main{padding:48px 0 70px}.eyebrow{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase}.intro h1{font-size:clamp(32px,6vw,44px);line-height:1.12;letter-spacing:-1.5px;color:var(--navy);margin:10px 0}.intro p{color:var(--muted);margin:0;max-width:660px}.panel{background:#fff;border:1px solid var(--line);border-radius:17px;padding:24px;margin-top:28px;box-shadow:0 8px 30px #172b5508}.drop{border:2px dashed #cbd4e8;border-radius:13px;background:#fafbff;padding:32px 18px;text-align:center}.drop strong{display:block;font-size:17px}.drop p{color:var(--muted);font-size:13px;margin:5px 0 16px}.btn{border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:750;padding:12px 18px;font-size:14px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.light{background:#edf1ff;color:var(--blue)}.btn.danger{background:#fff0f0;color:#bd3434;padding:8px 11px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 12px}.toolbar strong{font-size:14px}.count{font-size:12px;color:var(--muted)}.files{display:grid;gap:9px}.file{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:12px}.pdficon{width:38px;height:42px;display:grid;place-items:center;border-radius:8px;background:#fff0f0;color:#c43d3d;font-size:11px;font-weight:850;flex:none}.fileinfo{min-width:0;flex:1}.filename{font-size:13px;font-weight:750;overflow-wrap:anywhere}.filesize{font-size:11px;color:var(--muted)}.controls{display:flex;gap:5px;align-items:center}.iconbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 9px;cursor:pointer;color:#526078}.empty{text-align:center;color:var(--muted);padding:16px;font-size:13px}.bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.status{font-size:12px;color:var(--muted);min-height:20px}.privacy{font-size:12px;color:#52715f;background:#eff9f3;border-radius:10px;padding:12px 14px;margin-top:18px}.error{color:#b42318}.lang{border:1px solid var(--line);background:white;border-radius:8px;padding:7px 10px;font-weight:700;color:#526078}footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}
+@media(max-width:560px){.panel{padding:16px}.main{padding-top:34px}.drop{padding:26px 12px}.file{gap:8px}.controls{gap:3px}.iconbtn{padding:6px 7px}.bottom{align-items:stretch}.bottom .btn{width:100%}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav"><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools" id="back">← All tools</a></div></header>
+<main class="wrap main">
+<div class="intro"><div class="eyebrow" id="eyebrow">Free document tool</div><h1 id="heading">Merge PDF files</h1><p id="subheading">Combine several PDF documents into one file. Arrange their order before merging.</p></div>
+<section class="panel">
+<div class="drop" id="drop"><strong id="dropTitle">Add PDF files</strong><p id="dropText">Select two or more PDF files from your device. You can also drop them here.</p><input id="picker" type="file" accept="application/pdf,.pdf" multiple hidden><button class="btn" id="choose" type="button">Choose PDF files</button></div>
+<div class="toolbar"><strong id="listTitle">Files to merge</strong><span class="count" id="count">0 files</span></div>
+<div class="files" id="files"><div class="empty" id="empty">Your selected files will appear here.</div></div>
+<div class="bottom"><div class="status" id="status" role="status" aria-live="polite"></div><button class="btn" id="merge" type="button" disabled>Merge and download PDF</button></div>
+<div class="privacy" id="privacy">Privacy: your PDFs are processed in this browser. Their contents are not uploaded to Tendora.</div>
+</section>
+</main>
+<footer>© 2026 GLEESHYYY · A GLEESHYYY platform</footer>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+(()=> {
+const $=id=>document.getElementById(id);
+let files=[],lang='en';
+const words={
+en:{back:'← All tools',eyebrow:'Free document tool',heading:'Merge PDF files',sub:'Combine several PDF documents into one file. Arrange their order before merging.',drop:'Add PDF files',dropText:'Select two or more PDF files from your device. You can also drop them here.',choose:'Choose PDF files',list:'Files to merge',empty:'Your selected files will appear here.',merge:'Merge and download PDF',privacy:'Privacy: your PDFs are processed in this browser. Their contents are not uploaded to Tendora.',added:'Added',file:'file',files:'files',need:'Add at least two PDF files to continue.',working:'Merging your PDFs…',done:'Your merged PDF has been downloaded.',bad:'Could not read one of the files. Make sure it is a valid, unencrypted PDF.',library:'The PDF processing library did not load. Check your internet connection and try again.',removed:'Remove',up:'Move up',down:'Move down',invalid:'Only PDF files are accepted.'},
+rw:{back:'← Ibikoresho byose',eyebrow:'Igikoresho cy’inyandiko ku buntu',heading:'Huza dosiye za PDF',sub:'Huza inyandiko nyinshi za PDF zibe dosiye imwe. Ushobora kubanza gutunganya uko zikurikirana.',drop:'Ongeramo dosiye za PDF',dropText:'Hitamo nibura dosiye ebyiri za PDF muri telefone cyangwa uzishyire hano.',choose:'Hitamo dosiye za PDF',list:'Dosiye zigiye guhuzwa',empty:'Dosiye wahisemo zizagaragara hano.',merge:'Huza maze ukuremo PDF',privacy:'Umutekano: dosiye zawe zitunganyirizwa muri browser. Ntabwo zijyanwa kuri seriveri za Tendora.',added:'Zongeweho',file:'dosiye',files:'dosiye',need:'Ongeramo nibura dosiye ebyiri za PDF.',working:'Dosiye zirimo guhuzwa…',done:'PDF zahujwe kandi ziramanurwa.',bad:'Ntibyashobotse gusoma imwe muri dosiye. Reba niba ari PDF ikora kandi idafunze.',library:'Porogaramu yo gutunganya PDF ntiyafungutse. Reba internet wongere ugerageze.',removed:'Kuraho',up:'Jyana hejuru',down:'Jyana hasi',invalid:'Hemewe gusa dosiye za PDF.'}
+};
+function t(k){return words[lang][k]}
+function setStatus(s,error=false){$('status').textContent=s;$('status').className='status'+(error?' error':'')}
+function render(){
+$('count').textContent=files.length+' '+(files.length===1?t('file'):t('files'));
+$('merge').disabled=files.length<2;
+$('files').innerHTML='';
+if(!files.length){const e=document.createElement('div');e.className='empty';e.textContent=t('empty');$('files').append(e);return}
+files.forEach((f,i)=>{
+const row=document.createElement('div');row.className='file';
+const ico=document.createElement('div');ico.className='pdficon';ico.textContent='PDF';
+const info=document.createElement('div');info.className='fileinfo';
+const name=document.createElement('div');name.className='filename';name.textContent=f.name;
+const size=document.createElement('div');size.className='filesize';size.textContent=(f.size/1024/1024).toFixed(2)+' MB';
+info.append(name,size);
+const controls=document.createElement('div');controls.className='controls';
+[[t('up'),'↑',()=>{if(i){[files[i-1],files[i]]=[files[i],files[i-1]];render()}}],[t('down'),'↓',()=>{if(i<files.length-1){[files[i+1],files[i]]=[files[i],files[i+1]];render()}}],[t('removed'),'×',()=>{files.splice(i,1);render()}]].forEach(([label,symbol,fn])=>{const b=document.createElement('button');b.type='button';b.className='iconbtn';b.textContent=symbol;b.title=label;b.setAttribute('aria-label',label);b.addEventListener('click',fn);controls.append(b)});
+row.append(ico,info,controls);$('files').append(row)
+})
+}
+function add(list){
+let rejected=false;
+for(const f of list){if(f.type!=='application/pdf'&&!f.name.toLowerCase().endsWith('.pdf')){rejected=true;continue}if(!files.some(x=>x.name===f.name&&x.size===f.size&&x.lastModified===f.lastModified))files.push(f)}
+render();setStatus(rejected?t('invalid'):'')
+}
+$('choose').addEventListener('click',()=>$('picker').click());
+$('picker').addEventListener('change',e=>{add(e.target.files);e.target.value=''});
+$('drop').addEventListener('dragover',e=>{e.preventDefault();$('drop').style.borderColor='#315cf5'});
+$('drop').addEventListener('dragleave',()=>{$('drop').style.borderColor='#cbd4e8'});
+$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').style.borderColor='#cbd4e8';add(e.dataTransfer.files)});
+$('merge').addEventListener('click',async()=>{
+if(files.length<2){setStatus(t('need'),true);return}
+if(!window.PDFLib){setStatus(t('library'),true);return}
+$('merge').disabled=true;setStatus(t('working'));
+try{
+const out=await PDFLib.PDFDocument.create();
+for(const f of files){const src=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(src,src.getPageIndices());pages.forEach(p=>out.addPage(p))}
+const bytes=await out.save();const blob=new Blob([bytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='tendora-merged.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);setStatus(t('done'))
+}catch(e){setStatus(t('bad'),true);console.error(e)}
+finally{$('merge').disabled=files.length<2}
+});
+function applyLanguage(){
+const w=words[lang];document.documentElement.lang=lang==='rw'?'rw':'en';
+['back','eyebrow','heading','subheading','dropTitle','dropText','choose','listTitle','empty','merge','privacy'].forEach((id,i)=>{const keys=['back','eyebrow','heading','sub','drop','dropText','choose','list','empty','merge','privacy'];$(id).textContent=w[keys[i]]});
+render();setStatus('')
+}
+const toggle=document.createElement('button');toggle.className='lang';toggle.type='button';toggle.textContent='Kinyarwanda';toggle.style.marginLeft='auto';$('back').after(toggle);toggle.addEventListener('click',()=>{lang=lang==='en'?'rw':'en';toggle.textContent=lang==='en'?'Kinyarwanda':'English';applyLanguage()});
+render();
+})();
+</script>
+</body></html>
