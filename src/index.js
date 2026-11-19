@@ -15,7 +15,7 @@ const sameOrigin = request => { const origin=request.headers.get("Origin"); retu
 async function currentAdmin(request,env) {
  const token=cookieToken(request); if(!token) return null;
  const tokenHash=await digest(token);
- return await env.DB.prepare("SELECT a.id,a.email,a.display_name,a.role,a.status FROM admin_sessions s JOIN admins a ON a.id=s.admin_id WHERE s.token_hash=? AND s.expires_at>? AND a.status='active'").bind(tokenHash,new Date().toISOString()).first();
+ return await env.DB.prepare("SELECT a.id,a.email,a.display_name,a.role,a.status,a.password_reset_required FROM admin_sessions s JOIN admins a ON a.id=s.admin_id WHERE s.token_hash=? AND s.expires_at>? AND a.status='active'").bind(tokenHash,new Date().toISOString()).first();
 }
 async function audit(env,adminId,action,type=null,id=null,details={}) {
  await env.DB.prepare("INSERT INTO admin_audit_logs(id,admin_id,action,entity_type,entity_id,details_json) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),adminId,action,type,id,JSON.stringify(details)).run();
@@ -147,7 +147,69 @@ async function api(request,env) {
  }
  const admin=await currentAdmin(request,env);
  if(!admin) return json({error:"Authentication required."},401);
+ if(admin.password_reset_required && !(path==="/api/admin/me" && method==="GET") && !(path==="/api/admin/change-password" && method==="POST")) return json({error:"You must change your temporary password before continuing."},403);
  if(path==="/api/admin/me" && method==="GET") return json({admin});
+ if(path==="/api/admin/change-password" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const b=await request.json().catch(()=>null), currentPassword=String(b?.currentPassword||""), nextPassword=String(b?.newPassword||"");
+  if(nextPassword.length<10 || nextPassword.length>200) return json({error:"Your new password must contain at least 10 characters."},400);
+  const record=await env.DB.prepare("SELECT password_hash,password_salt,password_iterations FROM admins WHERE id=? AND status='active'").bind(admin.id).first();
+  const currentHash=await passwordHash(currentPassword,record.password_salt,record.password_iterations);
+  if(currentHash!==record.password_hash) return json({error:"Current password is incorrect."},400);
+  const salt=randomToken(16), hash=await passwordHash(nextPassword,salt);
+  await env.DB.prepare("UPDATE admins SET password_hash=?,password_salt=?,password_iterations=?,password_reset_required=0,updated_at=? WHERE id=?").bind(hash,salt,PBKDF2_ITERATIONS,new Date().toISOString(),admin.id).run();
+  const token=cookieToken(request), tokenHash=token?await digest(token):"";
+  await env.DB.prepare("DELETE FROM admin_sessions WHERE admin_id=? AND token_hash<>?").bind(admin.id,tokenHash).run();
+  await audit(env,admin.id,"admin_password_changed","admin",admin.id,{});
+  const updated=await env.DB.prepare("SELECT id,email,display_name,role,status,password_reset_required FROM admins WHERE id=?").bind(admin.id).first();
+  return json({ok:true,admin:updated});
+ }
+ if(path==="/api/admin/administrators" && method==="GET") {
+  if(admin.role!=="owner") return json({error:"Only the Owner can manage administrator accounts."},403);
+  const rows=await env.DB.prepare("SELECT id,email,display_name,role,status,created_at,last_login_at FROM admins ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'editor' THEN 2 ELSE 3 END,display_name").all();
+  return json({administrators:rows.results||[]});
+ }
+ if(path==="/api/admin/administrators" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(admin.role!=="owner") return json({error:"Only the Owner can create administrator accounts."},403);
+  const b=await request.json().catch(()=>null), email=String(b?.email||"").trim().toLowerCase(), name=String(b?.displayName||"").trim(), role=String(b?.role||"");
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || name.length<2 || name.length>100 || !["admin","editor","reviewer"].includes(role)) return json({error:"Enter a valid email, name and permitted role."},400);
+  const exists=await env.DB.prepare("SELECT id FROM admins WHERE email=?").bind(email).first();
+  if(exists) return json({error:"An administrator with this email already exists."},409);
+  const temporaryPassword=randomToken(18), salt=randomToken(16), hash=await passwordHash(temporaryPassword,salt), id=crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO admins(id,email,display_name,password_hash,password_salt,password_iterations,role,status,password_reset_required) VALUES(?,?,?,?,?,?,?,'active',1)").bind(id,email,name,hash,salt,PBKDF2_ITERATIONS,role).run();
+  await audit(env,admin.id,"admin_created","admin",id,{email,display_name:name,role});
+  return json({ok:true,id,temporaryPassword},201);
+ }
+ const administratorMatch=path.match(/^\\/api\\/admin\\/administrators\\/([a-f0-9-]+)(?:\\/(reset-password))?$/i);
+ if(administratorMatch) {
+  if(admin.role!=="owner") return json({error:"Only the Owner can manage administrator accounts."},403);
+  const targetId=administratorMatch[1], action=administratorMatch[2]||null;
+  const target=await env.DB.prepare("SELECT id,email,display_name,role,status FROM admins WHERE id=?").bind(targetId).first();
+  if(!target) return json({error:"Administrator not found."},404);
+  if(target.role==="owner") return json({error:"The Owner account cannot be changed or reset here."},403);
+  if(method==="PATCH" && !action) {
+   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+   const b=await request.json().catch(()=>null), name=String(b?.displayName??target.display_name).trim(), role=String(b?.role??target.role), status=String(b?.status??target.status);
+   if(name.length<2 || name.length>100 || !["admin","editor","reviewer"].includes(role) || !["active","disabled"].includes(status)) return json({error:"Enter a valid name, role and account status."},400);
+   if(targetId===admin.id && status!=="active") return json({error:"You cannot disable your own account."},400);
+   await env.DB.prepare("UPDATE admins SET display_name=?,role=?,status=?,updated_at=? WHERE id=?").bind(name,role,status,new Date().toISOString(),targetId).run();
+   if(status==="disabled") await env.DB.prepare("DELETE FROM admin_sessions WHERE admin_id=?").bind(targetId).run();
+   await audit(env,admin.id,"admin_updated","admin",targetId,{email:target.email,display_name:name,role,status});
+   return json({ok:true});
+  }
+  if(method==="POST" && action==="reset-password") {
+   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+   if(targetId===admin.id) return json({error:"Use your own password-change screen to change the Owner password."},400);
+   if(target.status!=="active") return json({error:"Enable this account before resetting its password."},409);
+   const temporaryPassword=randomToken(18), salt=randomToken(16), hash=await passwordHash(temporaryPassword,salt);
+   await env.DB.prepare("UPDATE admins SET password_hash=?,password_salt=?,password_iterations=?,password_reset_required=1,updated_at=? WHERE id=?").bind(hash,salt,PBKDF2_ITERATIONS,new Date().toISOString(),targetId).run();
+   await env.DB.prepare("DELETE FROM admin_sessions WHERE admin_id=?").bind(targetId).run();
+   await audit(env,admin.id,"admin_password_reset","admin",targetId,{email:target.email});
+   return json({ok:true,temporaryPassword});
+  }
+ }
+
  if(path==="/api/admin/overview" && method==="GET") {
   const [jobs,admins,sources,candidates]=await Promise.all([
    env.DB.prepare("SELECT status,COUNT(*) AS count FROM jobs GROUP BY status").all(),
@@ -357,7 +419,7 @@ async function createSession(adminId,request,env) {
  const expires=new Date(Date.now()+SESSION_SECONDS*1000).toISOString();
  await env.DB.prepare("INSERT INTO admin_sessions(id,admin_id,token_hash,expires_at) VALUES(?,?,?,?)").bind(id,adminId,tokenHash,expires).run();
  await env.DB.prepare("UPDATE admins SET last_login_at=?,updated_at=? WHERE id=?").bind(new Date().toISOString(),new Date().toISOString(),adminId).run();
- const admin=await env.DB.prepare("SELECT id,email,display_name,role FROM admins WHERE id=?").bind(adminId).first();
+ const admin=await env.DB.prepare("SELECT id,email,display_name,role,status,password_reset_required FROM admins WHERE id=?").bind(adminId).first();
  return json({ok:true,admin},200,{"set-cookie":cookie(token)});
 }
 export default {
