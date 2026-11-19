@@ -9,6 +9,20 @@
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<style id="tendora-progress-style">
+#tendora-work-progress{position:fixed;z-index:9999;left:50%;bottom:18px;transform:translate(-50%,18px);width:min(440px,calc(100vw - 28px));padding:13px 15px 14px;background:#fff;border:1px solid #e3e9f4;border-radius:14px;box-shadow:0 12px 36px #14213d24;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s}
+#tendora-work-progress.visible{opacity:1;visibility:visible;transform:translate(-50%,0)}
+#tendora-work-progress .tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px;font:700 12px/1.4 system-ui,sans-serif;color:#34415a}
+#tendora-work-progress .tp-state{font-size:11px;font-weight:800;color:#315cf5}
+#tendora-work-progress .tp-track{height:7px;background:#e9edf6;border-radius:20px;overflow:hidden}
+#tendora-work-progress .tp-bar{height:100%;width:38%;border-radius:20px;background:linear-gradient(90deg,#315cf5,#8ba5ff);transform:translateX(-110%);animation:tp-slide 1.15s ease-in-out infinite}
+#tendora-work-progress.done .tp-bar{width:100%;transform:none;animation:none;background:linear-gradient(90deg,#159957,#43c77d)}
+#tendora-work-progress.failed .tp-bar{width:100%;transform:none;animation:none;background:#dc4444}
+#tendora-work-progress.done .tp-state{color:#16834b}
+#tendora-work-progress.failed .tp-state{color:#c52b25}
+@keyframes tp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+@media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
+</style>
 </head>
 <body>
 <header><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">All tools ←</a></header>
@@ -81,4 +95,8 @@ make.addEventListener('click',async()=>{
  finally{make.disabled=!selectedFile;}
 });
 document.getElementById('reset').addEventListener('click',()=>{fileInput.value='';selectedFile=null;make.disabled=true;document.getElementById('filename').textContent='No file selected';status.textContent='';});
-</script></body></html>
+</script><div id="tendora-work-progress" role="status" aria-live="polite"><div class="tp-head"><span id="tendora-progress-label">Processing your file…</span><span class="tp-state" id="tendora-progress-state">WORKING</span></div><div class="tp-track"><div class="tp-bar"></div></div></div>
+<script id="tendora-progress-script">
+(()=>{const ids=new Set(["make","compress","compress","resizeImage","convert","merge","convert","make","convert","generate","make","split","make","convert"]);const box=document.getElementById('tendora-work-progress'),label=document.getElementById('tendora-progress-label'),state=document.getElementById('tendora-progress-state');if(!box)return;let active=null,started=0,showTimer=0,checkTimer=0,hideTimer=0;function finish(){if(!active)return;const text=[...document.querySelectorAll('#status,#error,#message,[role="status"],.status')].map(n=>n.textContent||'').join(' ').toLowerCase();const failed=/(failed|failure|error|could not|unable to|not supported|cannot|\bbad\b)/i.test(text);box.classList.remove('done','failed');box.classList.add(failed?'failed':'done');label.textContent=failed?'The operation could not be completed':'Your file is ready';state.textContent=failed?'FAILED':'COMPLETE';clearInterval(checkTimer);active=null;hideTimer=setTimeout(()=>box.classList.remove('visible','done','failed'),2600)}document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!ids.has(b.id)||b.disabled)return;clearTimeout(showTimer);clearTimeout(hideTimer);clearInterval(checkTimer);box.classList.remove('done','failed');label.textContent='Processing your file…';state.textContent='WORKING';active=b;started=Date.now();showTimer=setTimeout(()=>{if(active===b)box.classList.add('visible')},140);checkTimer=setInterval(()=>{if(active!==b)return;if(!b.disabled&&Date.now()-started>650)finish()},180)},true)})();
+</script>
+</body></html>
