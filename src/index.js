@@ -197,6 +197,10 @@ async function api(request,env) {
   const token=cookieToken(request); if(token) await env.DB.prepare("DELETE FROM admin_sessions WHERE token_hash=?").bind(await digest(token)).run();
   return json({ok:true},200, { "set-cookie":cookie("",0) });
  }
+ if(path==="/api/tools" && method==="GET") {
+  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 ORDER BY category,display_name").all();
+  return json({tools:rows.results||[]},200,{"cache-control":"public, max-age=60, s-maxage=60"});
+ }
  const admin=await currentAdmin(request,env);
  if(!admin) return json({error:"Authentication required."},401);
  if(admin.password_reset_required && !(path==="/api/admin/me" && method==="GET") && !(path==="/api/admin/change-password" && method==="POST")) return json({error:"You must change your temporary password before continuing."},403);
@@ -263,10 +267,6 @@ async function api(request,env) {
  }
 
 
- if(path==="/api/tools" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 ORDER BY category,display_name").all();
-  return json({tools:rows.results||[]},200,{"cache-control":"public, max-age=60, s-maxage=60"});
- }
  if(path==="/api/admin/profile" && method==="GET") {
   const profile=await env.DB.prepare("SELECT id,email,display_name,role,status,avatar_data_url FROM admins WHERE id=?").bind(admin.id).first();
   return json({profile});
