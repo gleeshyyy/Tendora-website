@@ -204,7 +204,7 @@ async function api(request,env) {
    }
    if(action==="reject") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to reject vacancies."},403);
-    if(!["pending_review","pending_review"].includes(job.status)) return json({error:"Only vacancies awaiting review can be rejected."},409);
+    if(job.status!=="pending_review" && job.status!=="rejected") return json({error:"Only vacancies awaiting review can be rejected."},409);
     const b=await request.json().catch(()=>({}));
     const reason=String(b?.reason||"").trim().slice(0,500);
     if(!reason) return json({error:"Provide a rejection reason."},400);
