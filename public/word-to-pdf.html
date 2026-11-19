@@ -2,61 +2,95 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Word to PDF Converter | Tendora</title>
-<meta name="description" content="Convert DOCX Word documents to PDF in your browser with Tendora.">
+<title>Word/Excel to PDF Converter | Tendora</title>
+<meta name="description" content="Convert Word documents and Excel workbooks to PDF in your browser with Tendora.">
 <style>
-:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e9f2;padding:17px max(20px,calc((100% - 1040px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:24px;font-weight:850;color:#172033;text-decoration:none;letter-spacing:-1px}.brand span{color:#635bdb}.back{color:#5149c8;text-decoration:none;font-weight:650}.wrap{max-width:850px;margin:42px auto;padding:0 18px}.panel{background:white;border:1px solid #e5e9f2;border-radius:18px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 35px #18264a0b}h1{font-size:clamp(28px,5vw,40px);letter-spacing:-1.3px;margin:0 0 10px}.muted{color:#64708a;line-height:1.65}.drop{border:2px dashed #c9cde0;border-radius:14px;padding:28px 18px;text-align:center;margin:24px 0;background:#fafaff}.drop input{max-width:100%;margin-top:14px}button{border:0;border-radius:10px;background:#5b52d6;color:white;padding:13px 20px;font-weight:750;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#edf0fa;color:#303b57}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.status{margin-top:16px;font-size:14px;color:#46516a;white-space:pre-wrap}.preview{margin-top:24px;border:1px solid #e5e9f2;border-radius:12px;padding:20px;background:#fff;max-height:420px;overflow:auto}.preview:empty{display:none}.preview img{max-width:100%}.preview table{border-collapse:collapse;max-width:100%}.preview td,.preview th{border:1px solid #aaa;padding:5px}footer{text-align:center;color:#788198;padding:28px;font-size:13px} .note{font-size:13px;background:#f4f5ff;padding:12px 14px;border-radius:10px;color:#59617a;line-height:1.6}
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e9f2;padding:17px max(20px,calc((100% - 1040px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:24px;font-weight:850;color:#172033;text-decoration:none;letter-spacing:-1px}.brand span{color:#635bdb}.back{color:#5149c8;text-decoration:none;font-weight:650}.wrap{max-width:900px;margin:42px auto;padding:0 18px}.panel{background:white;border:1px solid #e5e9f2;border-radius:18px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 35px #18264a0b}h1{font-size:clamp(28px,5vw,40px);letter-spacing:-1.3px;margin:0 0 10px}.muted{color:#64708a;line-height:1.65}.drop{border:2px dashed #c9cde0;border-radius:14px;padding:26px 18px;text-align:center;margin:24px 0;background:#fafaff}.drop input{max-width:100%;margin-top:14px}.settings{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}.settings label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:700;color:#59647c}select{padding:10px;border:1px solid #d9deeb;border-radius:9px;background:white;color:#172033}button{border:0;border-radius:10px;background:#5b52d6;color:white;padding:13px 20px;font-weight:750;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#edf0fa;color:#303b57}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.status{margin-top:16px;font-size:14px;color:#46516a;white-space:pre-wrap}.note{font-size:13px;background:#f4f5ff;padding:12px 14px;border-radius:10px;color:#59617a;line-height:1.6}.preview{margin-top:20px;overflow:auto}.sheet{border:1px solid #e5e9f2;border-radius:10px;padding:12px;margin:12px 0;background:#fff}.sheet h3{margin:0 0 10px;font-size:15px}.sheet table{border-collapse:collapse;font-size:11px;width:100%}.sheet td,.sheet th{border:1px solid #d8deea;padding:5px;text-align:left;overflow-wrap:anywhere}.sheet th{background:#f1f3fa}footer{text-align:center;color:#788198;padding:28px;font-size:13px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/Alpaq92/JSDoc@main/src/docToText.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 <header><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">All tools ←</a></header>
 <main class="wrap"><section class="panel">
-<h1>Word to PDF Converter</h1><p class="muted">Convert legacy Word (.doc), modern Word (.docx), and plain text (.txt) files into PDF. Your document is processed in this browser and is not uploaded to Tendora.</p>
-<div class="drop"><strong>Select a Word document</strong><br><input id="file" type="file" accept=".doc,.docx,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"><p class="muted" id="filename">Supported formats: DOC, DOCX, TXT</p></div>
-<div class="note">DOCX formatting is retained where supported. Legacy DOC files are extracted as text, so their original layout and rich formatting are not preserved. TXT files are converted as plain text. Always review the PDF before using it.</div>
+<h1>Word/Excel to PDF Converter</h1><p class="muted">Convert Word documents and Excel workbooks into PDF using one tool. Processing happens in your browser; your files are not uploaded to Tendora.</p>
+<div class="drop"><strong>Select a Word document or Excel workbook</strong><br><input id="file" type="file" accept=".doc,.docx,.xls,.xlsx,.xlsm,.xlsb,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><p class="muted" id="filename">Supported: DOC, DOCX, XLS, XLSX, XLSM, XLSB</p></div>
+<div class="settings">
+<label>PDF page size<select id="page"><option value="a4">A4</option><option value="letter">US Letter</option><option value="legal">Legal</option></select></label>
+<label>Page orientation<select id="orientation"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></label>
+<label>Table text size<select id="font"><option value="6">Small</option><option value="8" selected>Standard</option><option value="10">Large</option></select></label>
+</div>
+<div class="note">All populated worksheets are included in workbook order. Wide or very large sheets may be scaled down or split across multiple pages. Excel charts, macros, formulas' live calculations, and complex formatting may not be reproduced exactly; displayed cell values are exported. Review the PDF before using it.</div>
 <div class="actions"><button id="convert" disabled>Convert to PDF</button><button id="reset" class="secondary">Reset</button></div>
 <div id="status" class="status" aria-live="polite"></div><div id="preview" class="preview"></div>
 </section></main><footer>© 2026 GLEESHYYY · TENDORA</footer>
 <script>
-const input=document.getElementById('file'), convert=document.getElementById('convert'), reset=document.getElementById('reset'), status=document.getElementById('status'), preview=document.getElementById('preview');
-let sourceName='document', ready=false;
+const input=document.getElementById('file'),convert=document.getElementById('convert'),reset=document.getElementById('reset'),status=document.getElementById('status'),preview=document.getElementById('preview');
+let workbook=null,sourceName='document',fileType='',ready=false;
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function showText(value){const pre=document.createElement('pre');pre.textContent=value;pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.55;margin:0';preview.replaceChildren(pre);}
 input.addEventListener('change',async()=>{
- const file=input.files&&input.files[0]; preview.innerHTML=''; ready=false; convert.disabled=true;
+ const file=input.files&&input.files[0];workbook=null;fileType='';ready=false;preview.innerHTML='';convert.disabled=true;
  if(!file){status.textContent='';return}
  const ext=file.name.split('.').pop().toLowerCase();
- if(!['doc','docx','txt'].includes(ext)){status.textContent='Choose a .doc, .docx, or .txt file.';input.value='';return}
- sourceName=file.name;document.getElementById('filename').textContent=file.name;
- status.textContent='Reading document…';
+ if(!['doc','docx','xls','xlsx','xlsm','xlsb'].includes(ext)){status.textContent='Choose a DOC, DOCX, XLS, XLSX, XLSM, or XLSB file.';input.value='';return}
+ sourceName=file.name;document.getElementById('filename').textContent=file.name;status.textContent='Reading file…';
  try{
-  if(ext==='docx'){
-   const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
-   preview.innerHTML=result.value||'<p>This document has no readable text.</p>';
-   status.textContent=result.messages.length?'DOCX loaded with some unsupported elements. Review the preview.':'DOCX ready. Review the preview, then convert.';
-  }else if(ext==='doc'){
-   if(typeof docToText!=='function') throw new Error('Legacy DOC reader did not load.');
-   const extracted=docToText(await file.arrayBuffer());
-   if(!extracted) throw new Error('This DOC file is encrypted, damaged, or uses an unsupported old format.');
-   const pre=document.createElement('pre');pre.textContent=extracted;pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.55;margin:0';preview.replaceChildren(pre);
-   status.textContent='Legacy DOC text extracted. Original page layout and rich formatting cannot be retained; review before converting.';
+  if(['doc','docx'].includes(ext)){
+   fileType='word';
+   if(ext==='docx'){
+    const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+    preview.innerHTML=result.value||'<p>This document has no readable text.</p>';
+    status.textContent=result.messages.length?'Word document loaded with some unsupported elements. Review the preview.':'Word document ready. Review the preview, then convert.';
+   }else{
+    if(typeof docToText!=='function')throw new Error('Legacy Word DOC reader did not load.');
+    const extracted=docToText(await file.arrayBuffer());
+    if(!extracted)throw new Error('This DOC file is encrypted, damaged, or uses an unsupported old format.');
+    showText(extracted);status.textContent='Legacy DOC text extracted. Original page layout and rich formatting cannot be retained; review before converting.';
+   }
   }else{
-   const text=await file.text();
-   const pre=document.createElement('pre');pre.textContent=text;pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.55;margin:0';preview.replaceChildren(pre);
-   status.textContent='TXT file ready. Review the text, then convert.';
+   fileType='excel';
+   workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+   const sheets=workbook.SheetNames.filter(n=>{const a=XLSX.utils.sheet_to_json(workbook.Sheets[n],{header:1,defval:''});return a.some(r=>r.some(v=>v!==''&&v!==null&&v!==undefined));});
+   if(!sheets.length)throw new Error('No worksheets with data were found.');
+   preview.innerHTML=sheets.map(name=>{
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:'',raw:false}),sample=rows.slice(0,5);
+    return '<div class="sheet"><h3>'+escapeHtml(name)+'</h3><table><tbody>'+sample.map((r,i)=>'<tr>'+r.slice(0,8).map(v=>i===0?'<th>'+escapeHtml(v)+'</th>':'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table><small class="muted">'+rows.length+' rows · preview limited to first 5 rows and 8 columns</small></div>';
+   }).join('');
+   status.textContent='Excel workbook ready. '+sheets.length+' worksheet(s) with data found.';
   }
   ready=true;convert.disabled=false;
- }catch(e){status.textContent=e.message||'Could not read this file. Please check that it is a valid document.';}
+ }catch(e){workbook=null;ready=false;status.textContent=e.message||'Could not read this Word document or Excel workbook.';}
 });
 convert.addEventListener('click',async()=>{
- if(!ready||!preview.innerHTML)return;
+ if(!ready)return;
  convert.disabled=true;status.textContent='Creating your PDF…';
- const base=sourceName.replace(/\.(docx|doc|txt)$/i,'').replace(/[\\/:*?"<>|]/g,'_')||'document';
- const options={margin:[12,12,12,12],filename:base+'-tendora-converted.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
- try{await html2pdf().set(options).from(preview).save();status.textContent='PDF created: '+options.filename+'\nYour original file was not changed.';}
- catch(e){status.textContent='PDF creation failed. Please try another document.';}
+ const base=sourceName.replace(/\.(doc|docx|xls|xlsx|xlsm|xlsb)$/i,'').replace(/[\\/:*?"<>|]/g,'_')||'document';
+ const filename=base+'-tendora-converted.pdf';
+ try{
+  if(fileType==='word'){
+   if(typeof html2pdf!=='function')throw new Error('Word-to-PDF engine did not load. Check your internet connection.');
+   await html2pdf().set({margin:[12,12,12,12],filename,image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:document.getElementById('page').value,orientation:document.getElementById('orientation').value},pagebreak:{mode:['css','legacy']}}).from(preview).save();
+   status.textContent='PDF created: '+filename+'\nYour original Word document was not changed.';
+  }else{
+   if(!window.jspdf||!window.jspdf.jsPDF)throw new Error('Excel-to-PDF engine did not load. Check your internet connection.');
+   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:document.getElementById('orientation').value,unit:'mm',format:document.getElementById('page').value}),font=Number(document.getElementById('font').value);
+   let first=true,exported=0;
+   workbook.SheetNames.forEach(name=>{
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:'',raw:false}),data=rows.filter(r=>r.some(v=>v!==''&&v!==null&&v!==undefined));
+    if(!data.length)return;if(!first)doc.addPage();first=false;
+    const head=[data[0].map(v=>String(v??''))],body=data.length>1?data.slice(1).map(r=>r.map(v=>String(v??''))):[];
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(String(name).slice(0,100),10,12);
+    doc.autoTable({head,body,startY:17,margin:{top:17,right:8,bottom:10,left:8},styles:{font:'helvetica',fontSize:font,cellPadding:1.5,overflow:'linebreak',valign:'middle'},headStyles:{fillColor:[235,238,248],textColor:[30,40,65]},theme:'grid',showHead:'everyPage',rowPageBreak:'avoid'});exported++;
+   });
+   doc.save(filename);status.textContent='PDF created: '+filename+'\n'+exported+' worksheet(s) exported. Your original Excel workbook was not changed.';
+  }
+ }catch(e){status.textContent=e.message||'PDF creation failed. Please try another file.';}
  finally{convert.disabled=false;}
 });
-reset.addEventListener('click',()=>{input.value='';preview.innerHTML='';status.textContent='';document.getElementById('filename').textContent='Supported formats: DOC, DOCX, TXT';ready=false;convert.disabled=true;});
+reset.addEventListener('click',()=>{input.value='';workbook=null;fileType='';ready=false;preview.innerHTML='';status.textContent='';document.getElementById('filename').textContent='Supported: DOC, DOCX, XLS, XLSX, XLSM, XLSB';convert.disabled=true;});
 </script></body></html>
