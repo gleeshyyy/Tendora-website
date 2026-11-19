@@ -62,7 +62,7 @@ $('compress').addEventListener('click',async()=>{
   let change=delta>0?pct.toFixed(1)+'% '+t('saved'):delta<0?pct.toFixed(1)+'% '+t('larger'):t('same');
   $('resultTitle').textContent=t('done');
   $('resultText').textContent=t('status')+': '+size(file.size)+' · '+t('resultSize')+': '+size(blob.size)+' · '+t('savedBy')+': '+change+(delta<=0?' — '+t('nochange'):'');
-  $('download').href=lastUrl;$('download').download=file.name.replace(/\.pdf$/i,'')+'-compressed.pdf';$('download').textContent=t('download');
+  $('download').href=lastUrl;$('download').download=file.name.replace(/\.pdf$/i,'')+'-tendora-compressed.pdf';$('download').textContent=t('download');
   $('result').style.display='block';status('');
  }catch(e){console.error(e);status(t('error')+(e&&e.message?': '+e.message:''),true)}
  finally{if(gs&&gs.dispose)gs.dispose();button.disabled=false}
