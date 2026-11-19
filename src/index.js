@@ -163,6 +163,22 @@ async function api(request,env) {
   await env.DB.prepare("INSERT INTO analytics_events(id,event_type,job_id) VALUES(?,'application_click',?)").bind(crypto.randomUUID(),jobId).run();
   return json({ok:true},202);
  }
+
+ if(path==="/api/analytics/track" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const body=await request.json().catch(()=>null),visitorId=String(body?.visitorId||"").trim(),eventType=String(body?.eventType||""),pagePath=String(body?.pagePath||"").split("?")[0].slice(0,140);
+  if(!/^[a-f0-9-]{36}$/i.test(visitorId)||!/^\/[a-z0-9/_-]{1,139}$/i.test(pagePath)||pagePath.includes("..")) return json({error:"Invalid analytics event."},400);
+  const toolMap={"/cv-builder.html":"cv-builder","/merge-pdf.html":"merge-pdf","/split-pdf.html":"split-pdf","/pdf-to-word.html":"pdf-to-word","/pdf-to-images.html":"pdf-to-images","/compress-pdf.html":"compress-pdf","/rotate-pdf.html":"rotate-pdf","/add-page-numbers.html":"add-page-numbers","/word-to-pdf.html":"word-to-pdf","/excel-to-pdf.html":"word-to-pdf","/text-to-pdf.html":"text-to-pdf","/image-to-pdf.html":"image-to-pdf","/image-converter.html":"image-converter","/image-compressor.html":"image-compressor","/qr-code-generator.html":"qr-code-generator","/png-to-jpg.html":"png-to-jpg"};
+  const toolKey=toolMap[pagePath]||null;
+  if(!["page_view","tool_use","heartbeat"].includes(eventType)||(eventType==="tool_use"&&!toolKey)) return json({error:"Unsupported analytics event."},400);
+  const visitorHash=await digest(visitorId),now=new Date().toISOString();
+  await env.DB.prepare("INSERT INTO website_analytics_presence(visitor_hash,current_path,last_seen_at) VALUES(?,?,?) ON CONFLICT(visitor_hash) DO UPDATE SET current_path=excluded.current_path,last_seen_at=excluded.last_seen_at").bind(visitorHash,pagePath,now).run();
+  if(eventType==="page_view"||eventType==="tool_use"){
+   await env.DB.prepare("INSERT INTO website_analytics_events(id,event_type,visitor_hash,page_path,tool_key) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),eventType,visitorHash,pagePath,toolKey).run();
+   if(eventType==="page_view") await env.DB.prepare("DELETE FROM website_analytics_presence WHERE last_seen_at < ?").bind(new Date(Date.now()-86400000).toISOString()).run();
+  }
+  return json({ok:true},202);
+ }
  if(path==="/api/admin/status" && method==="GET") {
   const row=await env.DB.prepare("SELECT COUNT(*) AS count FROM admins").first();
   return json({setupRequired:Number(row.count)===0});
@@ -337,30 +353,32 @@ async function api(request,env) {
   const counts={}; for(const x of jobs.results||[]) counts[x.status]=x.count;
   return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count,activeSources:activeSources.count,recentActivity:recent.results||[],latestPublished:latest.results||[]});
  }
+
  if(path==="/api/admin/analytics" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can view analytics."},403);
-  const requested=Number.parseInt(url.searchParams.get("days")||"30",10), days=[7,30,90].includes(requested)?requested:30;
+  const requested=Number.parseInt(url.searchParams.get("days")||"30",10),days=[7,30,90].includes(requested)?requested:30;
   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  const [year,month,day]=today.split("-").map(Number);
-  const todayUtc=Date.UTC(year,month-1,day);
-  const startDay=new Date(todayUtc-(days-1)*86400000).toISOString().slice(0,10);
-  const cutoffUtc=new Date(todayUtc-(days-1)*86400000-2*3600000).toISOString();
-  const [jobCounts,clickCounts,clickTrend,publishedTrend,topJobs,sources,candidates]=await Promise.all([
+  const [year,month,day]=today.split("-").map(Number),todayUtc=Date.UTC(year,month-1,day),startDay=new Date(todayUtc-(days-1)*86400000).toISOString().slice(0,10),cutoffUtc=new Date(todayUtc-(days-1)*86400000-2*3600000).toISOString(),onlineCutoff=new Date(Date.now()-300000).toISOString();
+  const [jobCounts,clickCounts,clickTrend,publishedTrend,topJobs,sources,candidates,trafficCounts,onlineCounts,trafficTrend,toolUsage,topPages]=await Promise.all([
    env.DB.prepare("SELECT SUM(CASE WHEN status='published' AND (deadline IS NULL OR deadline='' OR deadline>=?) THEN 1 ELSE 0 END) AS live_published,SUM(CASE WHEN status='published' AND deadline IS NOT NULL AND deadline<>'' AND deadline<? THEN 1 ELSE 0 END) AS expired,SUM(CASE WHEN status IN ('pending_verification','pending_approval') THEN 1 ELSE 0 END) AS pending_review,SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected,SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) AS drafts,SUM(CASE WHEN status='published' AND published_at>=? THEN 1 ELSE 0 END) AS published_in_period FROM jobs WHERE status<>'archived'").bind(today,today,cutoffUtc).first(),
    env.DB.prepare("SELECT COUNT(*) AS all_time,SUM(CASE WHEN created_at>=? THEN 1 ELSE 0 END) AS period FROM analytics_events WHERE event_type='application_click'").bind(cutoffUtc).first(),
    env.DB.prepare("SELECT date(created_at,'+2 hours') AS day,COUNT(*) AS clicks FROM analytics_events WHERE event_type='application_click' AND date(created_at,'+2 hours')>=? GROUP BY date(created_at,'+2 hours') ORDER BY day").bind(startDay).all(),
    env.DB.prepare("SELECT date(published_at,'+2 hours') AS day,COUNT(*) AS published FROM jobs WHERE status='published' AND published_at IS NOT NULL AND date(published_at,'+2 hours')>=? GROUP BY date(published_at,'+2 hours') ORDER BY day").bind(startDay).all(),
    env.DB.prepare("SELECT j.id,j.title,j.employer,COUNT(e.id) AS clicks FROM jobs j LEFT JOIN analytics_events e ON e.job_id=j.id AND e.event_type='application_click' AND e.created_at>=? WHERE j.status='published' GROUP BY j.id ORDER BY clicks DESC,j.published_at DESC LIMIT 10").bind(cutoffUtc).all(),
    env.DB.prepare("SELECT name,monitoring_method,monitoring_enabled,last_checked_at,last_status FROM job_sources ORDER BY monitoring_enabled DESC,name LIMIT 30").all(),
-   env.DB.prepare("SELECT status,COUNT(*) AS count FROM discovery_candidates GROUP BY status").all()
+   env.DB.prepare("SELECT status,COUNT(*) AS count FROM discovery_candidates GROUP BY status").all(),
+   env.DB.prepare("SELECT COUNT(*) AS all_time_views,SUM(CASE WHEN created_at>=? THEN 1 ELSE 0 END) AS period_views,COUNT(DISTINCT visitor_hash) AS all_time_visitors,COUNT(DISTINCT CASE WHEN created_at>=? THEN visitor_hash END) AS period_visitors FROM website_analytics_events WHERE event_type='page_view'").bind(cutoffUtc,cutoffUtc).first(),
+   env.DB.prepare("SELECT COUNT(*) AS count FROM website_analytics_presence WHERE last_seen_at>=?").bind(onlineCutoff).first(),
+   env.DB.prepare("SELECT date(created_at,'+2 hours') AS day,COUNT(*) AS views,COUNT(DISTINCT visitor_hash) AS visitors FROM website_analytics_events WHERE event_type='page_view' AND date(created_at,'+2 hours')>=? GROUP BY date(created_at,'+2 hours') ORDER BY day").bind(startDay).all(),
+   env.DB.prepare("SELECT e.tool_key,COALESCE(t.display_name,e.tool_key) AS tool_name,COUNT(*) AS all_time_uses,SUM(CASE WHEN e.created_at>=? THEN 1 ELSE 0 END) AS period_uses,COUNT(DISTINCT CASE WHEN e.created_at>=? THEN e.visitor_hash END) AS period_users FROM website_analytics_events e LEFT JOIN tool_settings t ON t.tool_key=e.tool_key WHERE e.event_type='tool_use' GROUP BY e.tool_key ORDER BY period_uses DESC,all_time_uses DESC").bind(cutoffUtc,cutoffUtc).all(),
+   env.DB.prepare("SELECT page_path,COUNT(*) AS views,COUNT(DISTINCT visitor_hash) AS visitors FROM website_analytics_events WHERE event_type='page_view' AND created_at>=? GROUP BY page_path ORDER BY views DESC LIMIT 12").bind(cutoffUtc).all()
   ]);
-  const clickMap=new Map((clickTrend.results||[]).map(x=>[x.day,Number(x.clicks||0)]));
-  const publishedMap=new Map((publishedTrend.results||[]).map(x=>[x.day,Number(x.published||0)]));
-  const dailyClicks=[],dailyPublished=[];
-  for(let i=0;i<days;i++){const date=new Date(todayUtc-(days-1-i)*86400000).toISOString().slice(0,10);dailyClicks.push({day:date,clicks:clickMap.get(date)||0});dailyPublished.push({day:date,published:publishedMap.get(date)||0});}
+  const clickMap=new Map((clickTrend.results||[]).map(x=>[x.day,Number(x.clicks||0)])),publishedMap=new Map((publishedTrend.results||[]).map(x=>[x.day,Number(x.published||0)])),trafficMap=new Map((trafficTrend.results||[]).map(x=>[x.day,{views:Number(x.views||0),visitors:Number(x.visitors||0)}]));
+  const dailyClicks=[],dailyPublished=[],dailyTraffic=[];
+  for(let i=0;i<days;i++){const date=new Date(todayUtc-(days-1-i)*86400000).toISOString().slice(0,10);dailyClicks.push({day:date,clicks:clickMap.get(date)||0});dailyPublished.push({day:date,published:publishedMap.get(date)||0});const v=trafficMap.get(date)||{};dailyTraffic.push({day:date,views:v.views||0,visitors:v.visitors||0});}
   const discovery={};for(const row of candidates.results||[])discovery[row.status]=Number(row.count||0);
-  const c=jobCounts||{},k=clickCounts||{};
-  return json({days,today,summary:{livePublished:Number(c.live_published||0),expired:Number(c.expired||0),pendingReview:Number(c.pending_review||0),rejected:Number(c.rejected||0),drafts:Number(c.drafts||0),publishedInPeriod:Number(c.published_in_period||0),allTimeClicks:Number(k.all_time||0),periodClicks:Number(k.period||0)},dailyClicks,dailyPublished,topJobs:topJobs.results||[],sources:sources.results||[],discovery});
+  const c=jobCounts||{},k=clickCounts||{},t=trafficCounts||{};
+  return json({days,today,summary:{livePublished:Number(c.live_published||0),expired:Number(c.expired||0),pendingReview:Number(c.pending_review||0),rejected:Number(c.rejected||0),drafts:Number(c.drafts||0),publishedInPeriod:Number(c.published_in_period||0),allTimeClicks:Number(k.all_time||0),periodClicks:Number(k.period||0)},traffic:{allTimeViews:Number(t.all_time_views||0),periodViews:Number(t.period_views||0),allTimeVisitors:Number(t.all_time_visitors||0),periodVisitors:Number(t.period_visitors||0),onlineNow:Number(onlineCounts?.count||0)},dailyClicks,dailyPublished,dailyTraffic,toolUsage:toolUsage.results||[],topPages:topPages.results||[],topJobs:topJobs.results||[],sources:sources.results||[],discovery});
  }
  if(path==="/api/admin/activity" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can view activity logs."},403);
@@ -567,6 +585,28 @@ async function createSession(adminId,request,env) {
  const admin=await env.DB.prepare("SELECT id,email,display_name,role,status,password_reset_required FROM admins WHERE id=?").bind(adminId).first();
  return json({ok:true,admin},200,{"set-cookie":cookie(token)});
 }
+
+const analyticsTracker = `<script>
+(()=> {
+ const toolPages=new Set(["/cv-builder.html","/merge-pdf.html","/split-pdf.html","/pdf-to-word.html","/pdf-to-images.html","/compress-pdf.html","/rotate-pdf.html","/add-page-numbers.html","/word-to-pdf.html","/excel-to-pdf.html","/text-to-pdf.html","/image-to-pdf.html","/image-converter.html","/image-compressor.html","/qr-code-generator.html","/png-to-jpg.html"]);
+ const pagePath=location.pathname||"/";let visitorId="";
+ try{visitorId=localStorage.getItem("tendora_visitor_id")||""}catch{}
+ if(!/^[a-f0-9-]{36}$/i.test(visitorId)){
+  try{visitorId=crypto.randomUUID()}catch{const b=crypto.getRandomValues(new Uint8Array(16));visitorId=[...b].map(x=>x.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,"$1-$2-$3-$4-$5")}
+  try{localStorage.setItem("tendora_visitor_id",visitorId)}catch{}
+ }
+ const send=eventType=>fetch("/api/analytics/track",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({visitorId,eventType,pagePath}),keepalive:true}).catch(()=>{});
+ send("page_view");
+ if(toolPages.has(pagePath))document.addEventListener("click",event=>{
+  const button=event.target.closest("button");if(!button||button.disabled)return;
+  const id=(button.id||"").toLowerCase(),label=(button.textContent||"").toLowerCase();
+  if(/clear|reset|lang|choose|inspect|cancel/.test(id)||/clear|reset|choose|inspect|kinyarwanda/.test(label))return;
+  if(/merge|split|convert|compress|rotate|page.?number|create.?pdf|generate|print|resize|make/.test(id+" "+label))send("tool_use");
+ },true);
+ setInterval(()=>send("heartbeat"),60000);
+})();
+</script>`;
+
 export default {
  async fetch(request,env) {
   const url=new URL(request.url);
@@ -575,6 +615,13 @@ export default {
    try { return await api(request,env); }
    catch(error) { console.error(JSON.stringify({event:"admin_api_error",message:String(error),path:url.pathname})); return json({error:"The request could not be completed."},500); }
   }
-  return env.ASSETS.fetch(request);
+  const assetResponse=await env.ASSETS.fetch(request);
+  const pagePath=url.pathname==="/" ? "/index.html" : url.pathname;
+  if(request.method!=="GET" || pagePath==="/admin.html" || !assetResponse.ok || !(assetResponse.headers.get("content-type")||"").includes("text/html")) return assetResponse;
+  const html=await assetResponse.text();
+  if(!html.includes("</body>")) return assetResponse;
+  const headers=new Headers(assetResponse.headers);
+  headers.delete("content-length");headers.delete("content-encoding");headers.delete("etag");headers.delete("last-modified");
+  return new Response(html.replace("</body>",analyticsTracker+"</body>"),{status:assetResponse.status,statusText:assetResponse.statusText,headers});
  }
 };
