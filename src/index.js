@@ -54,7 +54,7 @@ async function api(request,env) {
  if(path==="/api/admin/logout" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   const token=cookieToken(request); if(token) await env.DB.prepare("DELETE FROM admin_sessions WHERE token_hash=?").bind(await digest(token)).run();
-  return json({ok:true},{}, { "set-cookie":cookie("",0) });
+  return json({ok:true},200, { "set-cookie":cookie("",0) });
  }
  const admin=await currentAdmin(request,env);
  if(!admin) return json({error:"Authentication required."},401);
