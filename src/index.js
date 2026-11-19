@@ -165,7 +165,7 @@ export default {
  async fetch(request,env) {
   const url=new URL(request.url);
   if(url.pathname==="/admin" || url.pathname==="/admin/") return Response.redirect(new URL("/admin.html",url),302);
-  if(url.pathname.startsWith("/api/admin/")) {
+  if(url.pathname.startsWith("/api/")) {
    try { return await api(request,env); }
    catch(error) { console.error(JSON.stringify({event:"admin_api_error",message:String(error),path:url.pathname})); return json({error:"The request could not be completed."},500); }
   }
