@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS admins (
   display_name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   password_salt TEXT NOT NULL,
-  password_iterations INTEGER NOT NULL DEFAULT 310000,
+  password_iterations INTEGER NOT NULL DEFAULT 100000,
   role TEXT NOT NULL CHECK (role IN ('owner','admin','editor','reviewer')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','invited','disabled')),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
