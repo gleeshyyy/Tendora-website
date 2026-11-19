@@ -185,7 +185,7 @@ async function api(request,env) {
    const b=await request.json().catch(()=>null);
    const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim();
    if(!title||!employer||!description||!/^https:\/\//i.test(source)||!/^https:\/\//i.test(application)) return json({error:"Title, employer, description and valid HTTPS source/application URLs are required."},400);
-   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=?,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,b.salary||null,description,b.qualifications||null,b.experience||null,source,application,b.deadline||null,b.dateVerified||null,new Date().toISOString(),jobId).run();
+   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=?,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,b.salary||null,description,b.qualifications||null,b.experience||null,source,application,b.deadline||null,new Date().toISOString(),jobId).run();
    await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:"pending_verification"});
    return json({ok:true,status:"pending_verification"});
   }
@@ -195,8 +195,9 @@ async function api(request,env) {
    if(action==="verify") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"Only a reviewer, administrator or owner can verify vacancies."},403);
     if(!["pending_verification","rejected"].includes(job.status)) return json({error:"Only vacancies awaiting verification can be verified."},409);
-    if(!job.date_verified || !/^https:\/\//i.test(job.source_url) || !/^https:\/\//i.test(job.application_url)) return json({error:"Add a verification date and valid official source and application links before verification."},400);
-    await env.DB.prepare("UPDATE jobs SET status='pending_approval',verified_by=?,updated_at=? WHERE id=?").bind(admin.id,now,jobId).run();
+    if(!/^https:\/\//i.test(job.source_url) || !/^https:\/\//i.test(job.application_url)) return json({error:"Add a verification date and valid official source and application links before verification."},400);
+    const verifiedDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    await env.DB.prepare("UPDATE jobs SET status='pending_approval',date_verified=?,verified_by=?,updated_at=? WHERE id=?").bind(verifiedDate,admin.id,now,jobId).run();
     await audit(env,admin.id,"job_verified","job",jobId,{title:job.title});
     return json({ok:true,status:"pending_approval"});
    }
