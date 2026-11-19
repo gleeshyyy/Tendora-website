@@ -69,10 +69,17 @@ function extractPageLinks(html,baseUrl) {
  const base=new URL(baseUrl), out=[], seen=new Set();
  const re=/<a\b([^>]*?)href\s*=\s*(["'])(.*?)\2([^>]*)>([\s\S]*?)<\/a>/gi;
  for(const m of html.matchAll(re)) {
-  const title=decodeEntities(m[5]), raw=m[3].trim();
-  if(title.length<5 || title.length>240 || !/(job|career|vacanc|position|recruit|employment|apply|opportunit|internship|consultant)/i.test(title+" "+raw)) continue;
+  let title=decodeEntities(m[5]).replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/\\s+/g," ").trim(), raw=m[3].trim();
   let url;try{url=new URL(raw,base)}catch{continue}
   if(url.protocol!=="https:" || url.hostname!==base.hostname || url.href===base.href || seen.has(url.href)) continue;
+  const generic=/^(explore more|read more|view more|view details|learn more|apply now|more details)$/i.test(title);
+  if(generic || title.length<5 || title.length>240) {
+   let slug="";try{slug=decodeURIComponent(url.pathname.split("/").filter(Boolean).pop()||"")}catch{}
+   if(!slug) continue;
+   title=slug.replace(/[-_]+/g," ").replace(/\\s+/g," ").trim().split(" ").map(w=>/^[A-Z0-9]{2,}$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ").replace(/[.]+$/,"");
+  }
+  if(title.length<5 || title.length>240 || !/(job|career|vacanc|position|recruit|employment|apply|opportunit|internship|consultant|technician|officer|manager|captain|pilot|agent|head|support)/i.test(title+" "+raw)) continue;
+  if(seen.has(url.href)) continue;
   seen.add(url.href);out.push({title,url:url.href,description:""});
   if(out.length>=30) break;
  }
