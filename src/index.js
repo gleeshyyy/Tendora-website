@@ -34,7 +34,7 @@ async function api(request,env) {
   const body=await request.json().catch(()=>null);
   if(!body || typeof body.setupToken!=="string" || body.setupToken!==env.ADMIN_SETUP_TOKEN) return json({error:"Invalid setup code."},403);
   const email=String(body.email||"").trim().toLowerCase(), name=String(body.name||"").trim(), password=String(body.password||"");
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length<2 || password.length<12) return json({error:"Enter a valid email, name and password of at least 12 characters."},400);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length<2 || password.length<8) return json({error:"Enter a valid email, name and password of at least 8 characters."},400);
   const salt=randomToken(16), hash=await passwordHash(password,salt);
   const id=crypto.randomUUID();
   await env.DB.prepare("INSERT INTO admins(id,email,display_name,password_hash,password_salt,password_iterations,role,status) VALUES(?,?,?,?,?,?, 'owner','active')").bind(id,email,name,hash,salt,PBKDF2_ITERATIONS).run();
