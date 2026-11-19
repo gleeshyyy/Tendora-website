@@ -71,8 +71,8 @@ make.addEventListener('click',async()=>{
   }
   if(totalChars===0)throw new Error('No selectable text was found. This appears to be a scanned or image-only PDF. Use OCR to make the text selectable, then try again.');
   status.textContent='Building editable Word document…';
-  const document=new docx.Document({sections:[{properties:{},children}]});
-  const blob=await docx.Packer.toBlob(document);
+  const wordDocument=new docx.Document({sections:[{properties:{},children}]});
+  const blob=await docx.Packer.toBlob(wordDocument);
   const base=selectedFile.name.replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]/g,'_')||'document';
   const outName=base+'-tendora-converted.docx';
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=outName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
