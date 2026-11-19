@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Word to PDF Converter | Tendora</title>
+<meta name="description" content="Convert DOCX Word documents to PDF in your browser with Tendora.">
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e9f2;padding:17px max(20px,calc((100% - 1040px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:24px;font-weight:850;color:#172033;text-decoration:none;letter-spacing:-1px}.brand span{color:#635bdb}.back{color:#5149c8;text-decoration:none;font-weight:650}.wrap{max-width:850px;margin:42px auto;padding:0 18px}.panel{background:white;border:1px solid #e5e9f2;border-radius:18px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 35px #18264a0b}h1{font-size:clamp(28px,5vw,40px);letter-spacing:-1.3px;margin:0 0 10px}.muted{color:#64708a;line-height:1.65}.drop{border:2px dashed #c9cde0;border-radius:14px;padding:28px 18px;text-align:center;margin:24px 0;background:#fafaff}.drop input{max-width:100%;margin-top:14px}button{border:0;border-radius:10px;background:#5b52d6;color:white;padding:13px 20px;font-weight:750;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#edf0fa;color:#303b57}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.status{margin-top:16px;font-size:14px;color:#46516a;white-space:pre-wrap}.preview{margin-top:24px;border:1px solid #e5e9f2;border-radius:12px;padding:20px;background:#fff;max-height:420px;overflow:auto}.preview:empty{display:none}.preview img{max-width:100%}.preview table{border-collapse:collapse;max-width:100%}.preview td,.preview th{border:1px solid #aaa;padding:5px}footer{text-align:center;color:#788198;padding:28px;font-size:13px} .note{font-size:13px;background:#f4f5ff;padding:12px 14px;border-radius:10px;color:#59617a;line-height:1.6}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+<header><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">All tools ←</a></header>
+<main class="wrap"><section class="panel">
+<h1>Word to PDF Converter</h1><p class="muted">Convert a Microsoft Word .docx document into a PDF file. Your document is processed in this browser and is not uploaded to Tendora.</p>
+<div class="drop"><strong>Select a Word document</strong><br><input id="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><p class="muted" id="filename">DOCX files only</p></div>
+<div class="note">Formatting may differ from Microsoft Word, especially for complex page layouts, headers, footers, columns, and fonts. Review the PDF before using it.</div>
+<div class="actions"><button id="convert" disabled>Convert to PDF</button><button id="reset" class="secondary">Reset</button></div>
+<div id="status" class="status" aria-live="polite"></div><div id="preview" class="preview"></div>
+</section></main><footer>© 2026 GLEESHYYY · TENDORA</footer>
+<script>
+const input=document.getElementById('file'), convert=document.getElementById('convert'), reset=document.getElementById('reset'), status=document.getElementById('status'), preview=document.getElementById('preview');
+let sourceName='document.docx', ready=false;
+input.addEventListener('change',async()=>{
+ const file=input.files&&input.files[0]; preview.innerHTML=''; ready=false; convert.disabled=true;
+ if(!file){status.textContent='';return}
+ if(!file.name.toLowerCase().endsWith('.docx')){status.textContent='Please select a .docx Word document.';input.value='';return}
+ sourceName=file.name;document.getElementById('filename').textContent=file.name;
+ status.textContent='Reading document…';
+ try{
+  const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+  preview.innerHTML=result.value||'<p>This document has no readable text.</p>';
+  if(result.messages.length) status.textContent='Document loaded. Some Word elements may not be supported; review the preview before converting.';
+  else status.textContent='Document ready. Review the preview, then convert.';
+  ready=true;convert.disabled=false;
+ }catch(e){status.textContent='Could not read this DOCX file. Check that it is a valid Word document.';}
+});
+convert.addEventListener('click',async()=>{
+ if(!ready||!preview.innerHTML)return;
+ convert.disabled=true;status.textContent='Creating your PDF…';
+ const base=sourceName.replace(/\.docx$/i,'').replace(/[\\/:*?"<>|]/g,'_')||'document';
+ const options={margin:[12,12,12,12],filename:base+'-tendora-converted.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
+ try{await html2pdf().set(options).from(preview).save();status.textContent='PDF created: '+options.filename+'\nYour original Word file was not changed.';}
+ catch(e){status.textContent='PDF creation failed. Please try another DOCX file.';}
+ finally{convert.disabled=false;}
+});
+reset.addEventListener('click',()=>{input.value='';preview.innerHTML='';status.textContent='';document.getElementById('filename').textContent='DOCX files only';ready=false;convert.disabled=true;});
+</script></body></html>
