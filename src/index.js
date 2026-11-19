@@ -148,8 +148,35 @@ async function api(request,env) {
   return json({error:"Method not allowed."},405);
  }
  if(path==="/api/admin/sources" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT id,name,organization_type,website_url,careers_url,monitoring_method,monitoring_enabled,last_checked_at,last_status FROM job_sources ORDER BY name").all();
+  const rows=await env.DB.prepare("SELECT id,name,organization_type,website_url,careers_url,monitoring_method,monitoring_enabled,last_checked_at,last_status,notes,created_at,updated_at FROM job_sources ORDER BY name").all();
   return json({sources:rows.results||[]});
+ }
+ if(path==="/api/admin/sources" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can manage recruitment sources."},403);
+  const b=await request.json().catch(()=>null);
+  const name=String(b?.name||"").trim(), organizationType=String(b?.organizationType||"").trim(), website=String(b?.websiteUrl||"").trim(), careers=String(b?.careersUrl||"").trim(), monitoring=String(b?.monitoringMethod||"manual"), notes=String(b?.notes||"").trim().slice(0,2000);
+  const validUrl=value=>{try{const u=new URL(value);return u.protocol==="https:"}catch{return false}};
+  if(name.length<2||!validUrl(website)||!validUrl(careers)||!["manual","rss","public_page"].includes(monitoring)) return json({error:"Enter an organization name, valid HTTPS website and careers URLs, and a supported monitoring method."},400);
+  const id=crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO job_sources(id,name,organization_type,website_url,careers_url,monitoring_method,monitoring_enabled,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,name,organizationType||null,website,careers,monitoring,b?.monitoringEnabled===false?0:1,notes||null,admin.id).run();
+  await audit(env,admin.id,"job_source_created","job_source",id,{name,monitoring_method:monitoring});
+  return json({ok:true,id},201);
+ }
+ const sourceMatch=path.match(/^\\/api\\/admin\\/sources\\/([a-f0-9-]+)$/i);
+ if(sourceMatch && method==="PATCH") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can manage recruitment sources."},403);
+  const id=sourceMatch[1], existing=await env.DB.prepare("SELECT * FROM job_sources WHERE id=?").bind(id).first();
+  if(!existing) return json({error:"Recruitment source not found."},404);
+  const b=await request.json().catch(()=>null);
+  const name=String(b?.name??existing.name).trim(), organizationType=String(b?.organizationType??existing.organization_type??"").trim(), website=String(b?.websiteUrl??existing.website_url).trim(), careers=String(b?.careersUrl??existing.careers_url).trim(), monitoring=String(b?.monitoringMethod??existing.monitoring_method), notes=String(b?.notes??existing.notes??"").trim().slice(0,2000);
+  const validUrl=value=>{try{const u=new URL(value);return u.protocol==="https:"}catch{return false}};
+  if(name.length<2||!validUrl(website)||!validUrl(careers)||!["manual","rss","public_page"].includes(monitoring)) return json({error:"Enter an organization name, valid HTTPS website and careers URLs, and a supported monitoring method."},400);
+  const enabled=b?.monitoringEnabled===undefined?existing.monitoring_enabled:(b.monitoringEnabled?1:0);
+  await env.DB.prepare("UPDATE job_sources SET name=?,organization_type=?,website_url=?,careers_url=?,monitoring_method=?,monitoring_enabled=?,notes=?,updated_at=? WHERE id=?").bind(name,organizationType||null,website,careers,monitoring,enabled,notes||null,new Date().toISOString(),id).run();
+  await audit(env,admin.id,"job_source_updated","job_source",id,{name,monitoring_method:monitoring,monitoring_enabled:enabled});
+  return json({ok:true});
  }
  return json({error:"Not found."},404);
 }
