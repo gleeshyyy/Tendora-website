@@ -158,6 +158,18 @@ async function api(request,env) {
   const counts={}; for(const x of jobs.results||[]) counts[x.status]=x.count;
   return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count});
  }
+ if(path==="/api/admin/activity" && method==="GET") {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can view activity logs."},403);
+  const page=Math.max(1,Math.min(10000,Number.parseInt(url.searchParams.get("page")||"1",10)||1));
+  const limit=50, search=String(url.searchParams.get("search")||"").trim().slice(0,120), action=String(url.searchParams.get("action")||"").trim().slice(0,80);
+  const like="%"+search.toLowerCase()+"%";
+  const where=" WHERE (?='' OR l.action=?) AND (?='' OR lower(coalesce(a.display_name,'')||' '||coalesce(a.email,'')||' '||l.action||' '||coalesce(l.entity_type,'')||' '||coalesce(l.entity_id,'')||' '||coalesce(l.details_json,'')) LIKE ?)";
+  const binds=[action,action,search,like];
+  const totalRow=await env.DB.prepare("SELECT COUNT(*) AS total FROM admin_audit_logs l LEFT JOIN admins a ON a.id=l.admin_id"+where).bind(...binds).first();
+  const total=Number(totalRow?.total||0), totalPages=Math.max(1,Math.ceil(total/limit)), safePage=Math.min(page,totalPages), offset=(safePage-1)*limit;
+  const rows=await env.DB.prepare("SELECT l.id,l.action,l.entity_type,l.entity_id,l.details_json,l.created_at,a.display_name AS admin_name,a.email AS admin_email FROM admin_audit_logs l LEFT JOIN admins a ON a.id=l.admin_id"+where+" ORDER BY l.created_at DESC,l.id DESC LIMIT ? OFFSET ?").bind(...binds,limit,offset).all();
+  return json({logs:rows.results||[],total,page:safePage,totalPages,limit});
+ }
  if(path==="/api/admin/jobs" && method==="GET") {
   const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs WHERE status<>'archived' ORDER BY updated_at DESC LIMIT 200").all();
   return json({jobs:rows.results||[]});
