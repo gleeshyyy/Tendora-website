@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.wrangler.com/config.json",
+  "name": "tendora",
+  "main": "./src/index.js",
+  "compatibility_date": "2026-11-19",
+  "assets": {
+    "directory": "./public/",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page"
+  }
+}
