@@ -153,6 +153,16 @@ async function api(request,env) {
   const rows=await env.DB.prepare("SELECT id,slug,title,employer,category,employment_type,location,salary_text,description,qualifications,experience,source_url,application_url,deadline,date_verified,published_at FROM jobs WHERE status='published' AND (deadline IS NULL OR deadline='' OR deadline>=?) ORDER BY published_at DESC,created_at DESC LIMIT 100").bind(today).all();
   return json({jobs:rows.results||[],count:(rows.results||[]).length,checkedAt:today},200,{"cache-control":"public, max-age=60, s-maxage=60"});
  }
+ if(path==="/api/analytics/click" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const body=await request.json().catch(()=>null), jobId=String(body?.jobId||"").trim();
+  if(!/^[a-f0-9-]{36}$/i.test(jobId)) return json({error:"Invalid vacancy reference."},400);
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const job=await env.DB.prepare("SELECT id FROM jobs WHERE id=? AND status='published' AND (deadline IS NULL OR deadline='' OR deadline>=?)").bind(jobId,today).first();
+  if(!job) return json({error:"Vacancy is not currently available."},404);
+  await env.DB.prepare("INSERT INTO analytics_events(id,event_type,job_id) VALUES(?,'application_click',?)").bind(crypto.randomUUID(),jobId).run();
+  return json({ok:true},202);
+ }
  if(path==="/api/admin/status" && method==="GET") {
   const row=await env.DB.prepare("SELECT COUNT(*) AS count FROM admins").first();
   return json({setupRequired:Number(row.count)===0});
@@ -326,6 +336,31 @@ async function api(request,env) {
   ]);
   const counts={}; for(const x of jobs.results||[]) counts[x.status]=x.count;
   return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count,activeSources:activeSources.count,recentActivity:recent.results||[],latestPublished:latest.results||[]});
+ }
+ if(path==="/api/admin/analytics" && method==="GET") {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can view analytics."},403);
+  const requested=Number.parseInt(url.searchParams.get("days")||"30",10), days=[7,30,90].includes(requested)?requested:30;
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const [year,month,day]=today.split("-").map(Number);
+  const todayUtc=Date.UTC(year,month-1,day);
+  const startDay=new Date(todayUtc-(days-1)*86400000).toISOString().slice(0,10);
+  const cutoffUtc=new Date(todayUtc-(days-1)*86400000-2*3600000).toISOString();
+  const [jobCounts,clickCounts,clickTrend,publishedTrend,topJobs,sources,candidates]=await Promise.all([
+   env.DB.prepare("SELECT SUM(CASE WHEN status='published' AND (deadline IS NULL OR deadline='' OR deadline>=?) THEN 1 ELSE 0 END) AS live_published,SUM(CASE WHEN status='published' AND deadline IS NOT NULL AND deadline<>'' AND deadline<? THEN 1 ELSE 0 END) AS expired,SUM(CASE WHEN status IN ('pending_verification','pending_approval') THEN 1 ELSE 0 END) AS pending_review,SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected,SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) AS drafts,SUM(CASE WHEN status='published' AND published_at>=? THEN 1 ELSE 0 END) AS published_in_period FROM jobs WHERE status<>'archived'").bind(today,today,cutoffUtc).first(),
+   env.DB.prepare("SELECT COUNT(*) AS all_time,SUM(CASE WHEN created_at>=? THEN 1 ELSE 0 END) AS period FROM analytics_events WHERE event_type='application_click'").bind(cutoffUtc).first(),
+   env.DB.prepare("SELECT date(created_at,'+2 hours') AS day,COUNT(*) AS clicks FROM analytics_events WHERE event_type='application_click' AND date(created_at,'+2 hours')>=? GROUP BY date(created_at,'+2 hours') ORDER BY day").bind(startDay).all(),
+   env.DB.prepare("SELECT date(published_at,'+2 hours') AS day,COUNT(*) AS published FROM jobs WHERE status='published' AND published_at IS NOT NULL AND date(published_at,'+2 hours')>=? GROUP BY date(published_at,'+2 hours') ORDER BY day").bind(startDay).all(),
+   env.DB.prepare("SELECT j.id,j.title,j.employer,COUNT(e.id) AS clicks FROM jobs j LEFT JOIN analytics_events e ON e.job_id=j.id AND e.event_type='application_click' AND e.created_at>=? WHERE j.status='published' GROUP BY j.id ORDER BY clicks DESC,j.published_at DESC LIMIT 10").bind(cutoffUtc).all(),
+   env.DB.prepare("SELECT name,monitoring_method,monitoring_enabled,last_checked_at,last_status FROM job_sources ORDER BY monitoring_enabled DESC,name LIMIT 30").all(),
+   env.DB.prepare("SELECT status,COUNT(*) AS count FROM discovery_candidates GROUP BY status").all()
+  ]);
+  const clickMap=new Map((clickTrend.results||[]).map(x=>[x.day,Number(x.clicks||0)]));
+  const publishedMap=new Map((publishedTrend.results||[]).map(x=>[x.day,Number(x.published||0)]));
+  const dailyClicks=[],dailyPublished=[];
+  for(let i=0;i<days;i++){const date=new Date(todayUtc-(days-1-i)*86400000).toISOString().slice(0,10);dailyClicks.push({day:date,clicks:clickMap.get(date)||0});dailyPublished.push({day:date,published:publishedMap.get(date)||0});}
+  const discovery={};for(const row of candidates.results||[])discovery[row.status]=Number(row.count||0);
+  const c=jobCounts||{},k=clickCounts||{};
+  return json({days,today,summary:{livePublished:Number(c.live_published||0),expired:Number(c.expired||0),pendingReview:Number(c.pending_review||0),rejected:Number(c.rejected||0),drafts:Number(c.drafts||0),publishedInPeriod:Number(c.published_in_period||0),allTimeClicks:Number(k.all_time||0),periodClicks:Number(k.period||0)},dailyClicks,dailyPublished,topJobs:topJobs.results||[],sources:sources.results||[],discovery});
  }
  if(path==="/api/admin/activity" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can view activity logs."},403);
