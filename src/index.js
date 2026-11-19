@@ -130,6 +130,7 @@ async function api(request,env) {
   if(attempt && now-windowStart<15*60*1000 && Number(attempt.attempt_count)>=8) return json({error:"Too many sign-in attempts. Try again in 15 minutes."},429);
   const body=await request.json().catch(()=>null);
   const email=String(body?.email||"").trim().toLowerCase(), password=String(body?.password||"");
+   if(password.length<8) return json({error:"Password must be at least 8 characters."},400);
   const admin=await env.DB.prepare("SELECT * FROM admins WHERE email=? AND status='active'").bind(email).first();
   const candidate=admin?await passwordHash(password,admin.password_salt,admin.password_iterations):"";
   if(!admin || candidate!==admin.password_hash) {
@@ -152,7 +153,7 @@ async function api(request,env) {
  if(path==="/api/admin/change-password" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   const b=await request.json().catch(()=>null), currentPassword=String(b?.currentPassword||""), nextPassword=String(b?.newPassword||"");
-  if(nextPassword.length<10 || nextPassword.length>200) return json({error:"Your new password must contain at least 10 characters."},400);
+  if(nextPassword.length<8 || nextPassword.length>200) return json({error:"Your new password must contain at least 8 characters."},400);
   const record=await env.DB.prepare("SELECT password_hash,password_salt,password_iterations FROM admins WHERE id=? AND status='active'").bind(admin.id).first();
   const currentHash=await passwordHash(currentPassword,record.password_salt,record.password_iterations);
   if(currentHash!==record.password_hash) return json({error:"Current password is incorrect."},400);
