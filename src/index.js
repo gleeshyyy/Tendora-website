@@ -93,6 +93,55 @@ async function api(request,env) {
   await audit(env,admin.id,"job_created","job",id,{title,employer,status:"pending_verification"});
   return json({ok:true,id,status:"pending_verification"},201);
  }
+ const jobMatch=path.match(/^\/api\/admin\/jobs\/([a-f0-9-]+)(?:\/(verify|approve|reject))?$/i);
+ if(jobMatch) {
+  const jobId=jobMatch[1], action=jobMatch[2]||null;
+  const job=await env.DB.prepare("SELECT * FROM jobs WHERE id=?").bind(jobId).first();
+  if(!job) return json({error:"Vacancy not found."},404);
+  if(method==="GET" && !action) return json({job});
+  if(method==="PATCH" && !action) {
+   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+   if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to edit vacancies."},403);
+   const b=await request.json().catch(()=>null);
+   const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim();
+   if(!title||!employer||!description||!/^https:\/\//i.test(source)||!/^https:\/\//i.test(application)) return json({error:"Title, employer, description and valid HTTPS source/application URLs are required."},400);
+   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=?,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,b.salary||null,description,b.qualifications||null,b.experience||null,source,application,b.deadline||null,b.dateVerified||null,new Date().toISOString(),jobId).run();
+   await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:"pending_verification"});
+   return json({ok:true,status:"pending_verification"});
+  }
+  if(method==="POST" && action) {
+   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+   const now=new Date().toISOString();
+   if(action==="verify") {
+    if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"Only a reviewer, administrator or owner can verify vacancies."},403);
+    if(!["pending_verification","rejected"].includes(job.status)) return json({error:"Only vacancies awaiting verification can be verified."},409);
+    if(!job.date_verified || !/^https:\/\//i.test(job.source_url) || !/^https:\/\//i.test(job.application_url)) return json({error:"Add a verification date and valid official source and application links before verification."},400);
+    await env.DB.prepare("UPDATE jobs SET status='pending_approval',verified_by=?,updated_at=? WHERE id=?").bind(admin.id,now,jobId).run();
+    await audit(env,admin.id,"job_verified","job",jobId,{title:job.title});
+    return json({ok:true,status:"pending_approval"});
+   }
+   if(action==="approve") {
+    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an administrator or owner can approve publication."},403);
+    if(job.status!=="pending_approval") return json({error:"Only verified vacancies can be approved."},409);
+    if(job.verified_by===admin.id && admin.role!=="owner") return json({error:"A different administrator must approve this vacancy."},403);
+    if(job.deadline && job.deadline<now.slice(0,10)) return json({error:"This vacancy deadline has passed. Update the deadline and verify it again."},400);
+    await env.DB.prepare("UPDATE jobs SET status='published',approved_by=?,published_at=?,updated_at=? WHERE id=?").bind(admin.id,now,now,jobId).run();
+    await audit(env,admin.id,"job_published","job",jobId,{title:job.title});
+    return json({ok:true,status:"published"});
+   }
+   if(action==="reject") {
+    if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to reject vacancies."},403);
+    if(!["pending_verification","pending_approval"].includes(job.status)) return json({error:"Only vacancies awaiting review can be rejected."},409);
+    const b=await request.json().catch(()=>({}));
+    const reason=String(b?.reason||"").trim().slice(0,500);
+    if(!reason) return json({error:"Provide a rejection reason."},400);
+    await env.DB.prepare("UPDATE jobs SET status='rejected',updated_at=? WHERE id=?").bind(now,jobId).run();
+    await audit(env,admin.id,"job_rejected","job",jobId,{title:job.title,reason});
+    return json({ok:true,status:"rejected"});
+   }
+  }
+  return json({error:"Method not allowed."},405);
+ }
  if(path==="/api/admin/sources" && method==="GET") {
   const rows=await env.DB.prepare("SELECT id,name,organization_type,website_url,careers_url,monitoring_method,monitoring_enabled,last_checked_at,last_status FROM job_sources ORDER BY name").all();
   return json({sources:rows.results||[]});
