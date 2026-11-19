@@ -43,12 +43,21 @@ async function api(request,env) {
  }
  if(path==="/api/admin/login" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+  const ipHash=await digest(ip);
+  const attempt=await env.DB.prepare("SELECT attempt_count,window_started_at FROM admin_login_attempts WHERE ip_hash=?").bind(ipHash).first();
+  const now=Date.now(), windowStart=attempt?Date.parse(attempt.window_started_at):0;
+  if(attempt && now-windowStart<15*60*1000 && Number(attempt.attempt_count)>=8) return json({error:"Too many sign-in attempts. Try again in 15 minutes."},429);
   const body=await request.json().catch(()=>null);
   const email=String(body?.email||"").trim().toLowerCase(), password=String(body?.password||"");
   const admin=await env.DB.prepare("SELECT * FROM admins WHERE email=? AND status='active'").bind(email).first();
-  if(!admin) return json({error:"Email or password is incorrect."},401);
-  const candidate=await passwordHash(password,admin.password_salt,admin.password_iterations);
-  if(candidate!==admin.password_hash) return json({error:"Email or password is incorrect."},401);
+  const candidate=admin?await passwordHash(password,admin.password_salt,admin.password_iterations):"";
+  if(!admin || candidate!==admin.password_hash) {
+   if(!attempt || now-windowStart>=15*60*1000) await env.DB.prepare("INSERT INTO admin_login_attempts(ip_hash,attempt_count,window_started_at,last_attempt_at) VALUES(?,1,?,?) ON CONFLICT(ip_hash) DO UPDATE SET attempt_count=1,window_started_at=excluded.window_started_at,last_attempt_at=excluded.last_attempt_at").bind(ipHash,new Date().toISOString(),new Date().toISOString()).run();
+   else await env.DB.prepare("UPDATE admin_login_attempts SET attempt_count=attempt_count+1,last_attempt_at=? WHERE ip_hash=?").bind(new Date().toISOString(),ipHash).run();
+   return json({error:"Email or password is incorrect."},401);
+  }
+  await env.DB.prepare("DELETE FROM admin_login_attempts WHERE ip_hash=?").bind(ipHash).run();
   return createSession(admin.id,request,env);
  }
  if(path==="/api/admin/logout" && method==="POST") {
