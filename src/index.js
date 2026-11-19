@@ -159,8 +159,13 @@ async function api(request,env) {
   return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count});
  }
  if(path==="/api/admin/jobs" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs ORDER BY updated_at DESC LIMIT 200").all();
+  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs WHERE status<>'archived' ORDER BY updated_at DESC LIMIT 200").all();
   return json({jobs:rows.results||[]});
+ }
+ if(path==="/api/admin/recycle-bin" && method==="GET") {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can access the Recycle Bin."},403);
+  const rows=await env.DB.prepare("SELECT id,title,employer,location,updated_at AS deleted_at FROM jobs WHERE status='archived' ORDER BY updated_at DESC LIMIT 500").all();
+  return json({jobs:rows.results||[],count:(rows.results||[]).length});
  }
  if(path==="/api/admin/jobs" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
@@ -173,7 +178,7 @@ async function api(request,env) {
   await audit(env,admin.id,"job_created","job",id,{title,employer,status:"pending_verification"});
   return json({ok:true,id,status:"pending_verification"},201);
  }
- const jobMatch=path.match(/^\/api\/admin\/jobs\/([a-f0-9-]+)(?:\/(publish|reject|delete))?$/i);
+ const jobMatch=path.match(/^\/api\/admin\/jobs\/([a-f0-9-]+)(?:\/(publish|reject|delete|restore|permanent-delete))?$/i);
  if(jobMatch) {
   const jobId=jobMatch[1], action=jobMatch[2]||null;
   const job=await env.DB.prepare("SELECT * FROM jobs WHERE id=?").bind(jobId).first();
@@ -208,6 +213,20 @@ async function api(request,env) {
     await env.DB.prepare("UPDATE jobs SET status='archived',updated_at=? WHERE id=?").bind(now,jobId).run();
     await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived"});
     return json({ok:true,status:"archived"});
+   }
+   if(action==="restore") {
+    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can restore archived vacancies."},403);
+    if(job.status!=="archived") return json({error:"Only archived vacancies can be restored."},409);
+    await env.DB.prepare("UPDATE jobs SET status='pending_verification',date_verified=NULL,verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(now,jobId).run();
+    await audit(env,admin.id,"job_restored","job",jobId,{title:job.title,new_status:"pending_verification"});
+    return json({ok:true,status:"pending_verification"});
+   }
+   if(action==="permanent-delete") {
+    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can permanently delete vacancies."},403);
+    if(job.status!=="archived") return json({error:"Only archived vacancies can be permanently deleted."},409);
+    await audit(env,admin.id,"job_permanently_deleted","job",jobId,{title:job.title});
+    await env.DB.prepare("DELETE FROM jobs WHERE id=? AND status='archived'").bind(jobId).run();
+    return json({ok:true,status:"deleted"});
    }
    if(action==="reject") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to reject vacancies."},403);
