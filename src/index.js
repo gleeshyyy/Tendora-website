@@ -173,7 +173,7 @@ async function api(request,env) {
   await audit(env,admin.id,"job_created","job",id,{title,employer,status:"pending_verification"});
   return json({ok:true,id,status:"pending_verification"},201);
  }
- const jobMatch=path.match(/^\/api\/admin\/jobs\/([a-f0-9-]+)(?:\/(publish|reject))?$/i);
+ const jobMatch=path.match(/^\/api\/admin\/jobs\/([a-f0-9-]+)(?:\/(publish|reject|delete))?$/i);
  if(jobMatch) {
   const jobId=jobMatch[1], action=jobMatch[2]||null;
   const job=await env.DB.prepare("SELECT * FROM jobs WHERE id=?").bind(jobId).first();
@@ -201,6 +201,13 @@ async function api(request,env) {
     await env.DB.prepare("UPDATE jobs SET status='published',date_verified=?,verified_by=?,approved_by=?,published_at=?,updated_at=? WHERE id=?").bind(publishedDate,admin.id,admin.id,now,now,jobId).run();
     await audit(env,admin.id,"job_published","job",jobId,{title:job.title});
     return json({ok:true,status:"published"});
+   }
+   if(action==="delete") {
+    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can delete published vacancies."},403);
+    if(job.status!=="published") return json({error:"Only published vacancies can be deleted from this list."},409);
+    await env.DB.prepare("UPDATE jobs SET status='archived',updated_at=? WHERE id=?").bind(now,jobId).run();
+    await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived"});
+    return json({ok:true,status:"archived"});
    }
    if(action==="reject") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to reject vacancies."},403);
