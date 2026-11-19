@@ -163,11 +163,12 @@ async function api(request,env) {
   await audit(env,admin.id,"job_source_created","job_source",id,{name,monitoring_method:monitoring});
   return json({ok:true,id},201);
  }
- const sourceMatch=path.match(/^\\/api\\/admin\\/sources\\/([a-f0-9-]+)$/i);
- if(sourceMatch && method==="PATCH") {
+ const sourcePrefix="/api/admin/sources/";
+ const sourceId=path.startsWith(sourcePrefix)?path.slice(sourcePrefix.length):"";
+ if(/^[a-f0-9-]+$/i.test(sourceId) && method==="PATCH") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can manage recruitment sources."},403);
-  const id=sourceMatch[1], existing=await env.DB.prepare("SELECT * FROM job_sources WHERE id=?").bind(id).first();
+  const id=sourceId, existing=await env.DB.prepare("SELECT * FROM job_sources WHERE id=?").bind(id).first();
   if(!existing) return json({error:"Recruitment source not found."},404);
   const b=await request.json().catch(()=>null);
   const name=String(b?.name??existing.name).trim(), organizationType=String(b?.organizationType??existing.organization_type??"").trim(), website=String(b?.websiteUrl??existing.website_url).trim(), careers=String(b?.careersUrl??existing.careers_url).trim(), monitoring=String(b?.monitoringMethod??existing.monitoring_method), notes=String(b?.notes??existing.notes??"").trim().slice(0,2000);
