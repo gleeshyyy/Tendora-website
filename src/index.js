@@ -65,34 +65,83 @@ function extractRssEntries(xml,baseUrl) {
  }
  return out;
 }
+function isExcludedJobLink(url,title) {
+ const p=url.pathname.toLowerCase(), t=String(title||"").toLowerCase();
+ return /\/(?:login|log-in|register|signup|sign-up|forgot|reset-password|support|help|account|profile|about|contact|terms|privacy|blog|news|search|category|tag|feed|feeds|page)(?:\/|$)/.test(p)
+  || /\b(forgot password|reset password|sign in|log in|support system|all feeds|newsletter|privacy policy|terms of use)\b/.test(t);
+}
+function extractJsonLdJobs(html,baseUrl) {
+ const out=[];
+ const scripts=[...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].slice(0,20);
+ const visit=value=>{
+  if(!value||typeof value!=="object") return;
+  if(Array.isArray(value)){for(const item of value)visit(item);return;}
+  const type=value["@type"];
+  if(type==="JobPosting" || (Array.isArray(type)&&type.includes("JobPosting"))) {
+   const title=decodeEntities(value.title||"").slice(0,240);
+   const org=value.hiringOrganization;
+   const employer=decodeEntities(typeof org==="string"?org:org?.name||"").slice(0,180);
+   let target=baseUrl;
+   try{target=new URL(value.url||value.sameAs||baseUrl,baseUrl).href}catch{}
+   const safe=safePublicUrl(target);
+   const description=decodeEntities(value.description||"").slice(0,1200);
+   const date=String(value.validThrough||value.datePosted||"").slice(0,40);
+   if(title.length>=5 && safe && !isExcludedJobLink(safe,title)) out.push({title,url:safe.href,employer:employer||null,description,date});
+  }
+  for(const [key,val] of Object.entries(value)) if(key==="@graph" || (val&&typeof val==="object")) visit(val);
+ };
+ for(const match of scripts) {
+  try{visit(JSON.parse(match[1].trim()))}catch{}
+ }
+ return out;
+}
 function extractPageLinks(html,baseUrl) {
  const base=new URL(baseUrl), out=[], seen=new Set();
+ const host=base.hostname.toLowerCase();
  const re=/<a\b([^>]*?)href\s*=\s*(["'])(.*?)\2([^>]*)>([\s\S]*?)<\/a>/gi;
  for(const m of html.matchAll(re)) {
-  let title=decodeEntities(m[5]).replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/\\s+/g," ").trim(), raw=m[3].trim();
+  const raw=m[3].trim();
   let url;try{url=new URL(raw,base)}catch{continue}
   if(url.protocol!=="https:" || url.hostname!==base.hostname || url.href===base.href || seen.has(url.href)) continue;
-  const generic=/^(explore more|read more|view more|view details|learn more|apply now|more details)$/i.test(title);
-  if(generic || title.length<5 || title.length>240) {
-   let slug="";try{slug=decodeURIComponent(url.pathname.split("/").filter(Boolean).pop()||"")}catch{}
-   if(!slug) continue;
-   title=slug.replace(/[-_]+/g," ").replace(/\\s+/g," ").trim().split(" ").map(w=>/^[A-Z0-9]{2,}$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ").replace(/[.]+$/,"");
+  let title=decodeEntities(m[5]).replace(/\s+/g," ").trim();
+  const path=url.pathname.toLowerCase();
+  if(isExcludedJobLink(url,title)) continue;
+  const jobPath=/\/(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?)(?:\/|$)/i.test(path);
+  const strongTitle=/\b(intern|internship|trainee|graduate|assistant|analyst|accountant|engineer|technician|officer|manager|director|coordinator|specialist|supervisor|consultant|teacher|driver|nurse|doctor|sales|cashier|developer|designer|pilot|captain|operator|foreman|advisor|adviser|head of|chief)\b/i.test(title);
+  if(!jobPath && !strongTitle) continue;
+  if(!title || /^(apply|apply now|view|view details|read more|learn more|more|details|open|click here)$/i.test(title)) {
+   let slug="";try{slug=decodeURIComponent(path.split("/").filter(Boolean).pop()||"")}catch{}
+   if(!slug || /^(jobs?|careers?|vacancies|opportunities|recruitment|positions?)$/i.test(slug)) continue;
+   title=slug.replace(/[-_]+/g," ").replace(/\s+/g," ").trim().split(" ").map(w=>/^[A-Z0-9]{2,}$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");
   }
-  if(title.length<5 || title.length>240 || !/(job|career|vacanc|position|recruit|employment|apply|opportunit|internship|consultant|technician|officer|manager|captain|pilot|agent|head|support)/i.test(title+" "+raw)) continue;
-  if(seen.has(url.href)) continue;
-  seen.add(url.href);out.push({title,url:url.href,description:""});
-  if(out.length>=30) break;
+  title=title.replace(/\s+/g," ").trim();
+  if(title.length<5 || title.length>240 || isExcludedJobLink(url,title)) continue;
+  if(!jobPath && !strongTitle) continue;
+  seen.add(url.href);
+  out.push({title:title.slice(0,240),url:url.href,employer:null,description:"",date:""});
+  if(out.length>=40) break;
  }
  return out;
 }
 async function discoverFromSource(source) {
- const target=safePublicUrl(source.careers_url); if(!target) throw new Error("Source URL is not a permitted public HTTPS address.");
- const response=await fetch(target.href,{method:"GET",redirect:"manual",signal:AbortSignal.timeout(12000),headers:{"User-Agent":"TendoraJobDiscovery/1.0 (+https://tendora.gleesh.workers.dev)","Accept":source.monitoring_method==="rss"?"application/rss+xml, application/atom+xml, application/xml, text/xml":"text/html,application/xhtml+xml"}});
+ const target=safePublicUrl(source.careers_url);
+ if(!target) throw new Error("Source URL is not a permitted public HTTPS address.");
+ const response=await fetch(target.href,{method:"GET",redirect:"manual",signal:AbortSignal.timeout(12000),headers:{"User-Agent":"TendoraJobDiscovery/1.1 (+https://tendora.gleesh.workers.dev)","Accept":source.monitoring_method==="rss"?"application/rss+xml, application/atom+xml, application/xml, text/xml":"text/html,application/xhtml+xml"}});
  if(response.status>=300 && response.status<400) throw new Error("Redirected source pages are not followed; update the saved URL to the final HTTPS address.");
  if(!response.ok) throw new Error("Source returned HTTP "+response.status+".");
  const type=(response.headers.get("content-type")||"").toLowerCase(), body=await boundedText(response);
- let entries=source.monitoring_method==="rss" || /xml|rss|atom/.test(type)?extractRssEntries(body,target.href):extractPageLinks(body,target.href);
- return entries.slice(0,30);
+ let entries;
+ if(source.monitoring_method==="rss" || /xml|rss|atom/.test(type)) entries=extractRssEntries(body,target.href);
+ else entries=[...extractJsonLdJobs(body,target.href),...extractPageLinks(body,target.href)];
+ const unique=new Map();
+ for(const entry of entries) {
+  const key=entry.url.split("#")[0].replace(/\/$/,"");
+  if(!unique.has(key)) unique.set(key,entry);
+ }
+ const result=[...unique.values()].slice(0,40);
+ if(!result.length && /enable javascript to run this app|javascript is required|please enable javascript/i.test(body))
+  throw new Error("This careers page requires JavaScript. Use manual review or connect an approved public feed/API.");
+ return result;
 }
 
 async function api(request,env) {
@@ -355,28 +404,31 @@ async function api(request,env) {
  if(path==="/api/admin/discovery/run" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can run source checks."},403);
-  const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 2").all();
-  const summary={checked:0,discovered:0,duplicates:0,errors:[]};
-  for(const source of sources.results||[]) {
+  const sources=await env.DB.prepare("SELECT * FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page') ORDER BY last_checked_at IS NOT NULL,last_checked_at LIMIT 8").all();
+  const summary={checked:0,discovered:0,duplicates:0,errors:[],sources:[]};
+  const results=await Promise.all((sources.results||[]).map(async source=>{
    try {
-    const entries=await discoverFromSource(source); let added=0,duplicates=0;
+    const entries=await discoverFromSource(source); let added=0,duplicates=0,alreadySeen=0;
     for(const entry of entries) {
      const normalized=entry.url.split("#")[0].replace(/\/$/,"");
      const prior=await env.DB.prepare("SELECT id FROM discovery_candidates WHERE source_url=? LIMIT 1").bind(normalized).first();
-     const existingJob=await env.DB.prepare("SELECT id FROM jobs WHERE lower(trim(title))=lower(trim(?)) AND lower(trim(employer))=lower(trim(?)) LIMIT 1").bind(entry.title,source.name).first();
-     if(prior) continue;
+     if(prior){alreadySeen++;continue;}
+     const existingJob=entry.employer?await env.DB.prepare("SELECT id FROM jobs WHERE lower(trim(title))=lower(trim(?)) AND lower(trim(employer))=lower(trim(?)) LIMIT 1").bind(entry.title,entry.employer).first():null;
      const id=crypto.randomUUID(), status=existingJob?"duplicate":"new";
-     await env.DB.prepare("INSERT INTO discovery_candidates(id,source_id,title,employer,source_url,application_url,status,notes) VALUES(?,?,?,?,?,?,?,?)").bind(id,source.id,entry.title,source.name,normalized,normalized,status,entry.description||null).run();
+     await env.DB.prepare("INSERT INTO discovery_candidates(id,source_id,title,employer,source_url,application_url,deadline,status,notes) VALUES(?,?,?,?,?,?,?,?,?)").bind(id,source.id,entry.title,entry.employer||null,normalized,entry.applicationUrl||normalized,entry.date||null,status,entry.description||null).run();
      if(existingJob) duplicates++; else added++;
     }
-    await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),"success: "+entries.length+" entries",source.id).run();
-    summary.checked++;summary.discovered+=added;summary.duplicates+=duplicates;
+    const checkedAt=new Date().toISOString();
+    const status=entries.length?"checked: "+entries.length+" vacancy link(s)":"checked: no vacancies found";
+    await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(checkedAt,status,source.id).run();
+    return {source:source.name,status,entries:entries.length,discovered:added,duplicates,alreadySeen};
    } catch(error) {
     const message=String(error?.message||error).slice(0,240);
     await env.DB.prepare("UPDATE job_sources SET last_checked_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),"error: "+message,source.id).run();
-    summary.errors.push({source:source.name,error:message});
+    return {source:source.name,status:"error: "+message,error:message,entries:0,discovered:0,duplicates:0,alreadySeen:0};
    }
-  }
+  }));
+  for(const item of results){summary.checked++;summary.discovered+=item.discovered;summary.duplicates+=item.duplicates;if(item.error)summary.errors.push({source:item.source,error:item.error});summary.sources.push(item);}
   await audit(env,admin.id,"discovery_sources_checked","discovery",null,summary);
   return json(summary);
  }
