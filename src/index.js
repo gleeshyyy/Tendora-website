@@ -107,6 +107,8 @@ function extractPageLinks(html,baseUrl) {
   const path=url.pathname.toLowerCase();
   if(isExcludedJobLink(url,title)) continue;
   const jobPath=/\/(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?)(?:\/|$)/i.test(path);
+  const leaf=path.split("/").filter(Boolean).pop()||"";
+  if(/^(?:jobs?|careers?|vacanc(?:y|ies)|opportunities|recruitment|positions?)$/i.test(leaf)) continue;
   const strongTitle=/\b(intern|internship|trainee|graduate|assistant|analyst|accountant|engineer|technician|officer|manager|director|coordinator|specialist|supervisor|consultant|teacher|driver|nurse|doctor|sales|cashier|developer|designer|pilot|captain|operator|foreman|advisor|adviser|head of|chief)\b/i.test(title);
   if(!jobPath && !strongTitle) continue;
   if(!title || /^(apply|apply now|view|view details|read more|learn more|more|details|open|click here)$/i.test(title)) {
