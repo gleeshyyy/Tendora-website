@@ -262,15 +262,70 @@ async function api(request,env) {
   }
  }
 
+
+ if(path==="/api/tools" && method==="GET") {
+  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 ORDER BY category,display_name").all();
+  return json({tools:rows.results||[]},200,{"cache-control":"public, max-age=60, s-maxage=60"});
+ }
+ if(path==="/api/admin/profile" && method==="GET") {
+  const profile=await env.DB.prepare("SELECT id,email,display_name,role,status,avatar_data_url FROM admins WHERE id=?").bind(admin.id).first();
+  return json({profile});
+ }
+ if(path==="/api/admin/profile" && method==="PATCH") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const b=await request.json().catch(()=>null), name=String(b?.displayName??admin.display_name).trim();
+  if(name.length<2 || name.length>100) return json({error:"Display name must contain 2 to 100 characters."},400);
+  let avatar=b?.avatarDataUrl;
+  if(avatar!==undefined && avatar!==null && (typeof avatar!=="string" || avatar.length>200000 || !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(avatar))) return json({error:"Profile photo must be JPEG, PNG or WebP and no larger than 150 KB after resizing."},400);
+  if(avatar===undefined) await env.DB.prepare("UPDATE admins SET display_name=?,updated_at=? WHERE id=?").bind(name,new Date().toISOString(),admin.id).run();
+  else await env.DB.prepare("UPDATE admins SET display_name=?,avatar_data_url=?,updated_at=? WHERE id=?").bind(name,avatar,new Date().toISOString(),admin.id).run();
+  await audit(env,admin.id,"admin_profile_updated","admin",admin.id,{display_name:name,photo_changed:avatar!==undefined});
+  const profile=await env.DB.prepare("SELECT id,email,display_name,role,status,avatar_data_url FROM admins WHERE id=?").bind(admin.id).first();
+  return json({ok:true,profile});
+ }
+ if(path==="/api/admin/tools" && method==="GET") {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can manage document tools."},403);
+  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,enabled,featured,updated_at FROM tool_settings ORDER BY category,display_name").all();
+  return json({tools:rows.results||[]});
+ }
+ const toolMatch=path.match(/^\/api\/admin\/tools\/([a-z0-9-]+)$/);
+ if(toolMatch && method==="PATCH") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can manage document tools."},403);
+  const key=toolMatch[1], existing=await env.DB.prepare("SELECT * FROM tool_settings WHERE tool_key=?").bind(key).first();
+  if(!existing) return json({error:"Document tool not found."},404);
+  const b=await request.json().catch(()=>null), enabled=b?.enabled===undefined?existing.enabled:(b.enabled?1:0), featured=b?.featured===undefined?existing.featured:(b.featured?1:0);
+  await env.DB.prepare("UPDATE tool_settings SET enabled=?,featured=?,updated_by=?,updated_at=? WHERE tool_key=?").bind(enabled,featured,admin.id,new Date().toISOString(),key).run();
+  await audit(env,admin.id,"document_tool_updated","document_tool",key,{enabled,featured});
+  return json({ok:true});
+ }
+ if(path==="/api/admin/settings" && method==="GET") {
+  const rows=await env.DB.prepare("SELECT setting_key,setting_value,updated_at FROM site_settings ORDER BY setting_key").all();
+  return json({settings:Object.fromEntries((rows.results||[]).map(x=>[x.setting_key,x.setting_value]))});
+ }
+ if(path==="/api/admin/settings" && method==="PATCH") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(admin.role!=="owner") return json({error:"Only the Owner can change general settings."},403);
+  const b=await request.json().catch(()=>null), allowed={site_name:["Tendora"],default_language:["English","Kinyarwanda"],timezone:["Africa/Kigali","UTC"],default_job_location:["Rwanda","Kigali","All Rwanda"]};
+  for(const [key,value] of Object.entries(b||{})) if(!allowed[key] || !allowed[key].includes(String(value))) return json({error:"One or more settings contain an unsupported value."},400);
+  for(const [key,value] of Object.entries(b||{})) await env.DB.prepare("INSERT INTO site_settings(setting_key,setting_value,updated_by,updated_at) VALUES(?,?,?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,updated_by=excluded.updated_by,updated_at=excluded.updated_at").bind(key,String(value),admin.id,new Date().toISOString()).run();
+  await audit(env,admin.id,"site_settings_updated","settings",null,b||{});
+  const rows=await env.DB.prepare("SELECT setting_key,setting_value FROM site_settings").all();
+  return json({ok:true,settings:Object.fromEntries((rows.results||[]).map(x=>[x.setting_key,x.setting_value]))});
+ }
+
  if(path==="/api/admin/overview" && method==="GET") {
-  const [jobs,admins,sources,candidates]=await Promise.all([
+  const [jobs,admins,sources,candidates,activeSources,recent,latest]=await Promise.all([
    env.DB.prepare("SELECT status,COUNT(*) AS count FROM jobs GROUP BY status").all(),
    env.DB.prepare("SELECT COUNT(*) AS count FROM admins WHERE status='active'").first(),
    env.DB.prepare("SELECT COUNT(*) AS count FROM job_sources").first(),
-   env.DB.prepare("SELECT COUNT(*) AS count FROM discovery_candidates WHERE status IN ('new','reviewing')").first()
+   env.DB.prepare("SELECT COUNT(*) AS count FROM discovery_candidates WHERE status IN ('new','reviewing')").first(),
+   env.DB.prepare("SELECT COUNT(*) AS count FROM job_sources WHERE monitoring_enabled=1 AND monitoring_method IN ('rss','public_page')").first(),
+   env.DB.prepare("SELECT l.action,l.entity_type,l.entity_id,l.created_at,a.display_name AS admin_name FROM admin_audit_logs l LEFT JOIN admins a ON a.id=l.admin_id ORDER BY l.created_at DESC LIMIT 6").all(),
+   env.DB.prepare("SELECT id,title,employer,location,published_at FROM jobs WHERE status='published' ORDER BY published_at DESC LIMIT 5").all()
   ]);
   const counts={}; for(const x of jobs.results||[]) counts[x.status]=x.count;
-  return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count});
+  return json({jobs:counts,admins:admins.count,sources:sources.count,discoveryPending:candidates.count,activeSources:activeSources.count,recentActivity:recent.results||[],latestPublished:latest.results||[]});
  }
  if(path==="/api/admin/activity" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can view activity logs."},403);
