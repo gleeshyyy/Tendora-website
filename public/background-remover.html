@@ -101,8 +101,8 @@ async function runBiRefNet(engine,image){
  for(let i=0;i<pixelsOut.data.length;i+=4)pixelsOut.data[i+3]=Math.round(pixelsOut.data[i+3]*alpha[i]/255);
  ctx.putImageData(pixelsOut,0,0);return await new Promise(resolve=>out.toBlob(resolve,"image/png"));
 }
-async function processFallback(engine,file){
- const [result]=await engine.remover(file);
+async function processFallback(engine,imageUrl){
+ const [result]=await engine.remover(imageUrl);
  if(!result)throw new Error("The AI model did not return an image.");
  if(typeof result.toBlob==="function")return await result.toBlob();
  const canvas=result.toCanvas?.();if(canvas)return await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
@@ -115,7 +115,7 @@ $("process").addEventListener("click",async()=>{
   const image=await loadImage(state.file);let blob,engine;
   if(navigator.gpu){
    try{engine=await loadBiRefNet();blob=await runBiRefNet(engine,image)}
-   catch(error){console.warn("BiRefNet WebGPU unavailable; switching to compact fallback.",error);setStatus("This device could not run the high-quality WebGPU model. Switching to the smaller compatibility model…","info");engine=await loadFallback();blob=await processFallback(engine,state.file)}
+   catch(error){console.warn("BiRefNet WebGPU unavailable; switching to compact fallback.",error);setStatus("This device could not run the high-quality WebGPU model. Switching to the smaller compatibility model…","info");engine=await loadFallback();blob=await processFallback(engine,state.sourceUrl)}
   }else{engine=await loadFallback();blob=await processFallback(engine,state.file)}
   if(!blob)throw new Error("Could not create the transparent PNG.");
   if(state.resultUrl)URL.revokeObjectURL(state.resultUrl);state.resultUrl=URL.createObjectURL(blob);state.engine=engine.engine;
