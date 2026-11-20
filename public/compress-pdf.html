@@ -73,8 +73,18 @@ $('compress').addEventListener('click',async()=>{
  const button=$('compress');button.disabled=true;status(t('loading'));$('result').style.display='none';
  let gs=null;
  try{
-  const {load}=await import('https://cdn.jsdelivr.net/npm/@wasm-zoo/ghostscript@0.7.2/+esm');
-  gs=await load();status(t('working'));
+  const hostedBase='https://cdn.jsdelivr.net/npm/@wasm-zoo/ghostscript@0.7.2/';
+  if(!window.WasmZooGhostscript){
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=hostedBase+'browser-ghostscript.js';
+    script.onload=resolve;
+    script.onerror=()=>reject(new Error('Could not load the Ghostscript browser wrapper'));
+    document.head.appendChild(script);
+   });
+  }
+  if(!window.WasmZooGhostscript||typeof window.WasmZooGhostscript.loadHosted!=='function')throw new Error('Ghostscript hosted loader is unavailable');
+  gs=window.WasmZooGhostscript.loadHosted({baseUrl:hostedBase});status(t('working'));
   const input=new Uint8Array(await file.arrayBuffer());
   const preset=$('quality').value;
   const resolution=preset==='screen'?72:preset==='ebook'?150:preset==='printer'?300:600;
