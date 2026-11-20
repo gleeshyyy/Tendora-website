@@ -114,7 +114,7 @@ button.addEventListener('click',async()=>{
   const head=new TextDecoder().decode(new Uint8Array(await selectedFile.slice(0,1024).arrayBuffer()));
   if(!head.includes('%PDF-'))throw new Error('This file does not appear to be a valid PDF.');
   await loadEngine();say('Loading Ghostscript WebAssembly. First use may take longer…');
-  runner=window.WasmZooGhostscript.loadHosted({baseUrl:ENGINE_BASE});
+  runner=await window.WasmZooGhostscript.loadHosted({baseUrl:ENGINE_BASE});
   const result=await runner.exec(argsFor($('quality').value),{files:[{name:'/input/original.pdf',data:selectedFile}],dirs:['/input','/output'],outputs:['/output/compressed.pdf'],timeoutMs:600000});
   const output=result.files.find(f=>f.name==='/output/compressed.pdf');
   if(!output||!output.data||output.data.byteLength<8)throw new Error('The compression engine did not produce a PDF.');
@@ -122,8 +122,8 @@ button.addEventListener('click',async()=>{
   if(!outSig.includes('%PDF-'))throw new Error('The compression engine returned an invalid PDF.');
   const blob=new Blob([output.data],{type:'application/pdf'});downloadUrl=URL.createObjectURL(blob);
   const diff=selectedFile.size-blob.size,pct=(Math.abs(diff)/selectedFile.size*100).toFixed(1);
-  const result=diff>0?pct+'% smaller':diff<0?pct+'% larger':'about the same size';
-  resultDetail.textContent='Original: '+size(selectedFile.size)+' · Compressed: '+size(blob.size)+' · Result: '+result+(diff<=0?'. This PDF did not become smaller at this quality level.':'.');
+  const sizeComparison=diff>0?pct+'% smaller':diff<0?pct+'% larger':'about the same size';
+  resultDetail.textContent='Original: '+size(selectedFile.size)+' · Compressed: '+size(blob.size)+' · Result: '+sizeComparison+(diff<=0?'. This PDF did not become smaller at this quality level.':'.');
   downloadLink.href=downloadUrl;downloadLink.download=(selectedFile.name||'document.pdf').replace(/\.pdf$/i,'')+'-compressed.pdf';
   resultBox.classList.add('show');say('Compression finished.');
  }catch(e){console.error('Tendora PDF compressor:',e);say(e&&e.message?e.message:'Compression failed. Try another PDF.',true)}
