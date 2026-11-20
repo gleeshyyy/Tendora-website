@@ -68,7 +68,7 @@ async function loadRemover(device){
  const {pipeline,env}=mod;
  env.allowLocalModels=false;env.allowRemoteModels=true;env.useBrowserCache=true;
  env.remoteHost=location.origin+"/hf-models";
- env.remotePathTemplate="{model}/resolve/{revision}/{file}";
+ env.remotePathTemplate="{model}/resolve/{revision}";
  const model="Orangebot/ormbg-ONNX";
  const options=device==="webgpu"?{device:"webgpu",dtype:"fp16"}:{device:"wasm",dtype:"uint8"};
  currentStage=device==="webgpu"?"downloading GPU model":"downloading CPU-compatible model";
