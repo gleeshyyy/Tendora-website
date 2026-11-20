@@ -11,8 +11,10 @@
    env.allowLocalModels=false;env.allowRemoteModels=true;env.useBrowserCache=true;
    env.remoteHost=location.origin+"/hf-models";
    env.remotePathTemplate="{model}/resolve/{revision}";
-   const device=navigator.gpu?"webgpu":"wasm";
-   await pipeline("image-segmentation","d30social/ormbg-ortweb",{device,dtype:"fp16"});
+   let device="wasm";
+   if(navigator.gpu){try{const adapter=await navigator.gpu.requestAdapter();if(adapter)device="webgpu"}catch{}}
+   try{await pipeline("image-segmentation","d30social/ormbg-ortweb",{device,dtype:"fp16"})}
+   catch(error){if(device!=="webgpu")throw error;console.warn("GPU preload unavailable; warming the CPU-compatible model instead.",error);await pipeline("image-segmentation","d30social/ormbg-ortweb",{device:"wasm",dtype:"fp16"})}
    console.info("Tendora background-remover model is cached for this browser.");
   }catch(error){console.warn("Tendora background model preloading was deferred or failed:",error)}
  };
