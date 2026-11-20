@@ -13,7 +13,7 @@
    env.remotePathTemplate="{model}/resolve/{revision}";
    let device="wasm";
    if(navigator.gpu){try{const adapter=await navigator.gpu.requestAdapter();if(adapter)device="webgpu"}catch{}}
-   try{await pipeline("image-segmentation","d30social/ormbg-ortweb",{device,dtype:"fp16"})}
+   try{if(device==="webgpu")await pipeline("image-segmentation","d30social/ormbg-ortweb",{device,dtype:"fp16"});else await pipeline("background-removal","Orangebot/ormbg-ONNX",{device:"wasm",dtype:"uint8"})}
    catch(error){if(device!=="webgpu")throw error;console.warn("GPU preload unavailable; warming the CPU-compatible model instead.",error);await pipeline("background-removal","Orangebot/ormbg-ONNX",{device:"wasm",dtype:"uint8"})}
    console.info("Tendora background-remover model is cached for this browser.");
   }catch(error){console.warn("Tendora background model preloading was deferred or failed:",error)}
