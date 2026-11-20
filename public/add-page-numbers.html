@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Add page numbers to PDF documents in your browser with Tendora."><title>Add Page Numbers to PDF | Tendora</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Add page numbers to a PDF online. Choose the position, size and format, then download a numbered copy. Files stay in your browser."><title>Add Page Numbers to PDF | Tendora</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#18233b;background:#f7f8fc}*{box-sizing:border-box}body{margin:0;line-height:1.55}header{height:70px;background:#fff;border-bottom:1px solid #e7eaf1}.nav{width:min(900px,calc(100% - 32px));height:100%;margin:auto;display:flex;align-items:center;justify-content:space-between}.brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:#101b35;text-decoration:none}.brand span{color:#315cf5}.back{font-size:14px;font-weight:700;color:#526078;text-decoration:none}.wrap{width:min(900px,calc(100% - 32px));margin:44px auto}.intro h1{font-size:clamp(30px,6vw,42px);letter-spacing:-1.5px;margin:8px 0}.intro p,.muted{color:#68738a;line-height:1.6}.eyebrow{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#315cf5}.panel{background:#fff;border:1px solid #e7eaf1;border-radius:17px;padding:clamp(18px,4vw,28px);margin-top:25px;box-shadow:0 8px 30px #172b5508}.upload{border:2px dashed #cbd4e8;border-radius:13px;background:#fafbff;padding:24px}.upload input{display:block;margin-top:12px;max-width:100%}.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:22px 0}.settings label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:750;color:#526078}.settings input,.settings select{width:100%;padding:11px;border:1px solid #d9deeb;border-radius:9px;background:white;color:#18233b;font:inherit}.check{display:flex;gap:9px;align-items:center;font-size:14px;color:#526078;margin:12px 0}.btn{border:0;border-radius:10px;background:#315cf5;color:#fff;font-weight:750;padding:13px 20px;font-size:14px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.light{background:#edf1ff;color:#315cf5}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.status{margin-top:16px;font-size:13px;color:#526078;white-space:pre-wrap;line-height:1.6}.privacy{font-size:12px;color:#52715f;background:#eff9f3;border-radius:10px;padding:12px 14px;margin-top:18px}footer{text-align:center;color:#8a94a7;padding:22px;font-size:12px}@media(max-width:540px){.wrap{margin-top:32px}.panel{padding:17px}}
 
@@ -22,15 +22,15 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 @media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
 </style>
 
-<link rel="canonical" href="https://tendora.gleesh.workers.dev/add-page-numbers.html">
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/add-page-numbers">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tendora">
 <meta property="og:title" content="Add Page Numbers to PDF | Tendora">
-<meta property="og:description" content="Add page numbers to PDF documents in your browser with Tendora.">
-<meta property="og:url" content="https://tendora.gleesh.workers.dev/add-page-numbers.html">
+<meta property="og:description" content="Add page numbers to a PDF online. Choose the position, size and format, then download a numbered copy. Files stay in your browser.">
+<meta property="og:url" content="https://tendora.gleesh.workers.dev/add-page-numbers">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Add Page Numbers to PDF | Tendora">
-<meta name="twitter:description" content="Add page numbers to PDF documents in your browser with Tendora.">
+<meta name="twitter:description" content="Add page numbers to a PDF online. Choose the position, size and format, then download a numbered copy. Files stay in your browser.">
 </head>
 <body><header><div class="nav"><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">← All tools</a></div></header>
 <main class="wrap"><div class="intro"><div class="eyebrow">Free document tool</div><h1>Add Page Numbers to PDF</h1><p>Number the pages in your PDF, choose where the numbers appear, and download a new copy.</p></div>
@@ -46,7 +46,8 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 <div class="actions"><button class="btn" id="make" disabled>Add page numbers</button><button class="btn light" id="reset">Clear</button></div>
 <div class="status" id="status" role="status" aria-live="polite"></div>
 <div class="privacy">Privacy: your PDF is processed in this browser. It is not uploaded to Tendora. Original files are never modified. Password-protected PDFs are not supported.</div>
-</section></main><footer>© 2026 GLEESHYYY · TENDORA</footer>
+</section><section class="seo-help"><h2>How to add page numbers to a PDF</h2><p>Choose a PDF from your device, select where the page numbers should appear, and set the starting number and display format. You can leave the first page unnumbered when it is a cover sheet.</p><p>Use a separate downloaded copy so your original document remains unchanged. Check the finished PDF to make sure the numbers are readable and do not cover important content.</p><h2>PDF page numbering options</h2><ul><li>Place numbers at the top or bottom, left, centre or right.</li><li>Choose a font size and a plain, “Page 1” or “1 / total” format.</li><li>Start numbering at a number you choose and optionally skip the first page.</li></ul><p><strong>Privacy:</strong> The selected PDF is processed in your browser and is not uploaded to Tendora.</p></section>
+</main><footer>© 2026 GLEESHYYY · TENDORA</footer>
 <script>
 const $=id=>document.getElementById(id);let selected=null,busy=false;
 $('file').addEventListener('change',()=>{selected=$('file').files[0]||null;if(!selected){$('make').disabled=true;return;}if(!/\.pdf$/i.test(selected.name)){selected=null;$('file').value='';$('make').disabled=true;$('status').textContent='Please choose a PDF file.';return;}$('filename').textContent=selected.name+' · '+(selected.size/1048576).toFixed(2)+' MB';$('status').textContent='PDF selected.';$('make').disabled=false;});
