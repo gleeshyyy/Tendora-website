@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101b35">
-<meta name="description" content="Convert PNG images to JPG in your browser with Tendora.">
+<meta name="description" content="Convert PNG images to JPG online. Choose the output quality and download a separate JPG copy; transparent areas become white.">
 <title>PNG to JPG Converter — Tendora</title>
 <style>
 :root{--navy:#101b35;--blue:#315cf5;--ink:#18233b;--muted:#68738a;--line:#e7eaf1;--bg:#f7f8fc;--green:#16865d}
@@ -24,7 +24,7 @@
 @keyframes tp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
 @media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
 </style>
-<link rel="canonical" href="https://tendora.gleesh.workers.dev/png-to-jpg.html"><meta property="og:type" content="website"><meta property="og:site_name" content="Tendora"><meta property="og:title" content="PNG to JPG Converter — Tendora"><meta property="og:description" content="Convert PNG images to JPG in your browser with Tendora."><meta property="og:url" content="https://tendora.gleesh.workers.dev/png-to-jpg.html"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="PNG to JPG Converter — Tendora"><meta name="twitter:description" content="Convert PNG images to JPG in your browser with Tendora."></head>
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/png-to-jpg"><meta property="og:type" content="website"><meta property="og:site_name" content="Tendora"><meta property="og:title" content="PNG to JPG Converter — Tendora"><meta property="og:description" content="Convert PNG images to JPG online. Choose the output quality and download a separate JPG copy; transparent areas become white."><meta property="og:url" content="https://tendora.gleesh.workers.dev/png-to-jpg"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="PNG to JPG Converter — Tendora"><meta name="twitter:description" content="Convert PNG images to JPG online. Choose the output quality and download a separate JPG copy; transparent areas become white."></head>
 <body>
 <header><div class="wrap nav"><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/">← Back to Tendora</a></div></header>
 <main class="wrap">
@@ -38,6 +38,7 @@
 <div id="result" class="result" aria-live="polite"><h2>Conversion complete</h2><div class="stats"><div class="stat"><small>Original PNG</small><strong id="originalSize">—</strong></div><div class="stat"><small>New JPG</small><strong id="newSize">—</strong></div><div class="stat"><small>Size change</small><strong id="change">—</strong></div></div><div class="subtle" id="resultname"></div><button class="btn download" id="download" type="button">Download JPG</button></div>
 </section>
 <p class="privacy">Privacy: conversion happens locally in your browser. Your image is not uploaded to Tendora. The original PNG is never overwritten.</p>
+<section class="seo-help"><h2>Convert PNG images to JPG</h2><p>Select one PNG image and choose the JPG quality setting. Higher quality generally preserves more image detail but creates a larger file. Lower quality can reduce file size.</p><p>JPG does not support transparent backgrounds. Transparent areas in the original PNG are filled with white in the converted image. The tool creates a separate JPG copy and does not overwrite the PNG.</p><h2>PNG or JPG: which should you use?</h2><p>PNG is useful for transparency, screenshots and lossless graphics. JPG is often a practical choice for photographs and smaller image files. Review the output before replacing an image in a document or website.</p></section>
 </main>
 <script>
 const $=id=>document.getElementById(id);
