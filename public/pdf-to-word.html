@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PDF to Word | Tendora</title>
-<meta name="description" content="Convert text-based PDF files into editable Word documents in your browser with Tendora.">
+<meta name="description" content="Convert text-based PDF files into editable Word documents online. Extract selectable text in your browser; complex layouts and scanned pages are not reconstructed.">
 <style>
 :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e9f2;padding:17px max(20px,calc((100% - 1040px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:24px;font-weight:850;color:#172033;text-decoration:none;letter-spacing:-1px}.brand span{color:#635bdb}.back{color:#5149c8;text-decoration:none;font-weight:650}.wrap{max-width:900px;margin:42px auto;padding:0 18px}.panel{background:white;border:1px solid #e5e9f2;border-radius:18px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 35px #18264a0b}h1{font-size:clamp(28px,5vw,40px);letter-spacing:-1.3px;margin:0 0 10px}.muted{color:#64708a;line-height:1.65}.upload{border:2px dashed #c9cde0;border-radius:13px;padding:22px;margin:22px 0;background:#fafaff}input{padding:10px;border:1px solid #d9deeb;border-radius:9px;background:#fff;color:#172033;max-width:100%;margin-top:10px}.settings{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}.settings label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:700;color:#59647c}select{padding:10px;border:1px solid #d9deeb;border-radius:9px;background:#fff;color:#172033}button{border:0;border-radius:10px;background:#5b52d6;color:white;padding:13px 20px;font-weight:750;font-size:15px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#edf0fa;color:#303b57}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.status{margin-top:16px;font-size:14px;color:#46516a;white-space:pre-wrap;line-height:1.6}.note{font-size:13px;background:#f4f5ff;padding:12px 14px;border-radius:10px;color:#59617a;line-height:1.6}footer{text-align:center;color:#788198;padding:28px;font-size:13px}
 
@@ -28,15 +28,15 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 @media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
 </style>
 
-<link rel="canonical" href="https://tendora.gleesh.workers.dev/pdf-to-word.html">
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/pdf-to-word">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tendora">
 <meta property="og:title" content="PDF to Word | Tendora">
-<meta property="og:description" content="Convert text-based PDF files into editable Word documents in your browser with Tendora.">
-<meta property="og:url" content="https://tendora.gleesh.workers.dev/pdf-to-word.html">
+<meta property="og:description" content="Convert text-based PDF files into editable Word documents online. Extract selectable text in your browser; complex layouts and scanned pages are not reconstructed.">
+<meta property="og:url" content="https://tendora.gleesh.workers.dev/pdf-to-word">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="PDF to Word | Tendora">
-<meta name="twitter:description" content="Convert text-based PDF files into editable Word documents in your browser with Tendora.">
+<meta name="twitter:description" content="Convert text-based PDF files into editable Word documents online. Extract selectable text in your browser; complex layouts and scanned pages are not reconstructed.">
 </head>
 <body>
 <header><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/#tools">All tools ←</a></header>
@@ -51,7 +51,8 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 <div class="note"><strong>Important:</strong> This tool extracts selectable text and rebuilds it as editable Word paragraphs. It does not reproduce the original PDF layout, columns, tables, images, signatures or exact fonts. Scanned/image-only PDFs need OCR first; they may produce an empty document here. Password-protected PDFs are not supported.</div>
 <div class="actions"><button id="make" disabled>Convert to Word</button><button id="reset" class="secondary">Clear</button></div>
 <div class="status" id="status" aria-live="polite"></div>
-</section></main><footer>© 2026 GLEESHYYY · TENDORA</footer>
+</section><section class="seo-help"><h2>Turn PDF text into an editable Word document</h2><p>This tool extracts selectable text from a PDF and places it into an editable DOCX document. It is best suited to text-based PDFs such as letters and simple reports.</p><p>It does not reproduce the original page design exactly. Columns, tables, images, signatures, complex formatting and exact fonts may not be preserved. Scanned PDFs that contain only page images need optical character recognition (OCR), which this tool does not provide.</p><h2>Check the converted document</h2><p>Open the DOCX file in a word processor and review headings, paragraph breaks and spacing before editing or sharing it. Password-protected PDFs are not supported.</p><p>Your PDF is processed in your browser and is not uploaded to Tendora.</p></section>
+</main><footer>© 2026 GLEESHYYY · TENDORA</footer>
 <script>
 const fileInput=document.getElementById('file'),status=document.getElementById('status'),make=document.getElementById('make');
 let selectedFile=null;
