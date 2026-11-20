@@ -102,7 +102,7 @@ async function runBiRefNet(engine,image){
  ctx.putImageData(pixelsOut,0,0);return await new Promise(resolve=>out.toBlob(resolve,"image/png"));
 }
 async function processFallback(engine,imageUrl){
- const [result]=await engine.remover(imageUrl);
+ const [result]=await engine.remover([imageUrl]);
  if(!result)throw new Error("The AI model did not return an image.");
  if(typeof result.toBlob==="function")return await result.toBlob();
  const canvas=result.toCanvas?.();if(canvas)return await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
