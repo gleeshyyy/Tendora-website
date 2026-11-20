@@ -621,6 +621,9 @@ const analyticsTracker = `<script>
 })();
 </script>`;
 
+const sharedNavigationMarkup = "<header class=\"tendora-global-header\"><div class=\"tendora-global-nav\"><a class=\"tendora-global-brand\" href=\"/\">tendora<span>.</span></a><button class=\"tendora-global-toggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"tendora-global-menu\" aria-label=\"Open navigation\"><span></span><span></span><span></span></button><nav class=\"tendora-global-links\" id=\"tendora-global-menu\" aria-label=\"Main navigation\"><a href=\"/jobs\">Find jobs</a><details class=\"tendora-global-services\"><summary>All services <span class=\"tendora-global-chevron\">⌄</span></summary><div class=\"tendora-global-mega\"><div class=\"tendora-global-group\"><strong>Career</strong><a href=\"/jobs\">Browse Rwanda jobs</a><a href=\"/cv-builder\" data-tool-key=\"cv-builder\">CV Builder</a><a href=\"/cover-letter-builder\" data-tool-key=\"cover-letter-builder\">Cover Letter Builder</a></div><div class=\"tendora-global-group\"><strong>PDF tools</strong><a href=\"/merge-pdf\" data-tool-key=\"merge-pdf\">Merge PDF</a><a href=\"/split-pdf\" data-tool-key=\"split-pdf\">Split PDF</a><a href=\"/compress-pdf\" data-tool-key=\"compress-pdf\">Compress PDF</a><a href=\"/pdf-to-word\" data-tool-key=\"pdf-to-word\">PDF to Word</a><a href=\"/pdf-to-images\" data-tool-key=\"pdf-to-images\">PDF to Images</a><a href=\"/rotate-pdf\" data-tool-key=\"rotate-pdf\">Rotate PDF</a><a href=\"/add-page-numbers\" data-tool-key=\"add-page-numbers\">Add Page Numbers</a><a href=\"/word-to-pdf\" data-tool-key=\"word-to-pdf\">Word/Excel to PDF</a><a href=\"/text-to-pdf\" data-tool-key=\"text-to-pdf\">Text to PDF</a></div><div class=\"tendora-global-group\"><strong>Image tools</strong><a href=\"/image-to-pdf\" data-tool-key=\"image-to-pdf\">Image to PDF</a><a href=\"/image-converter\" data-tool-key=\"image-converter\">Image Converter</a><a href=\"/image-compressor\" data-tool-key=\"image-compressor\">Image Compressor</a><a href=\"/qr-code-generator\" data-tool-key=\"qr-code-generator\">QR Code Generator</a><a href=\"/png-to-jpg\" data-tool-key=\"png-to-jpg\">PNG to JPG</a></div></div></details><a href=\"/#about\">About</a><div class=\"tendora-global-mobile-actions\"><a class=\"tendora-global-btn primary\" href=\"/jobs\">Explore jobs</a></div></nav><div class=\"tendora-global-actions\"><a class=\"tendora-global-btn\" href=\"/jobs\">Explore jobs</a><a class=\"tendora-global-btn primary\" href=\"/#tools\">Get started</a></div></div></header>";
+const sharedNavigationAssets = '<link rel="stylesheet" href="/site-navigation.css"><script defer src="/site-navigation.js"></script>';
+
 export default {
  async fetch(request,env) {
   const url=new URL(request.url);
@@ -633,8 +636,13 @@ export default {
   const assetResponse=await env.ASSETS.fetch(request);
   const pagePath=url.pathname==="/" ? "/index.html" : url.pathname;
   if(request.method!=="GET" || pagePath==="/admin.html" || !assetResponse.ok || !(assetResponse.headers.get("content-type")||"").includes("text/html")) return assetResponse;
-  const html=await assetResponse.text();
+  let html=await assetResponse.text();
   if(!html.includes("</body>")) return assetResponse;
+  if(pagePath!=="/index.html" && !html.includes('id="tendora-global-menu"')){
+   if(/<header\\b[\\s\\S]*?<\\/header>/i.test(html)) html=html.replace(/<header\\b[\\s\\S]*?<\\/header>/i,sharedNavigationMarkup);
+   else html=html.replace(/<body\\b[^>]*>/i,match=>match+sharedNavigationMarkup);
+   html=html.replace("</head>",sharedNavigationAssets+"</head>");
+  }
   const headers=new Headers(assetResponse.headers);
   headers.delete("content-length");headers.delete("content-encoding");headers.delete("etag");headers.delete("last-modified");
   return new Response(html.replace("</body>",analyticsTracker+"</body>"),{status:assetResponse.status,statusText:assetResponse.statusText,headers});
