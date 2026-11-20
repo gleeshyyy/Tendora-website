@@ -59,7 +59,7 @@ for(const ev of ["dragenter","dragover"]){$("drop").addEventListener(ev,e=>{e.pr
 for(const ev of ["dragleave","drop"]){$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("drag")})}
 $("drop").addEventListener("drop",e=>selectFile(e.dataTransfer?.files?.[0]));
 let currentStage="not started";
-const MODEL="d30social/ormbg-ortweb";
+const MODELS={webgpu:"d30social/ormbg-ortweb",wasm:"Orangebot/ormbg-ONNX"};
 async function loadRemover(device){
  currentStage=device==="webgpu"?"loading GPU AI engine":"loading compatibility AI engine";
  progress("Loading AI engine…",5);
@@ -72,11 +72,11 @@ async function loadRemover(device){
  env.remotePathTemplate="{model}/resolve/{revision}";
  currentStage=device==="webgpu"?"downloading GPU-compatible model":"downloading CPU-compatible model";
  progress("Preparing browser-compatible AI model…",10);
- const remover=await pipeline("image-segmentation",MODEL,{device,dtype:"fp16",progress_callback:event=>{
+ const gpu=device==="webgpu";const remover=await pipeline(gpu?"image-segmentation":"background-removal",MODELS[device],{device,dtype:gpu?"fp16":"uint8",progress_callback:event=>{
   if(event.status==="progress"&&event.total){const pct=Math.min(88,10+(event.loaded/event.total)*78);progress("Downloading AI model… "+(event.file||""),pct)}
   else if(event.status==="done"){progress("Preparing AI model…",91)}
  }});
- return {remover,engine:device==="webgpu"?"ORMBG · WebGPU":"ORMBG · WebAssembly"};
+ return {remover,mode:gpu?"mask":"raw",engine:gpu?"ORMBG · WebGPU":"ORMBG · WebAssembly"};
 }
 async function loadAI(){
  let adapter=null;
@@ -90,16 +90,20 @@ async function loadImage(file){
 }
 async function processWithAI(engine,imageUrl){
  currentStage="processing image";progress("Finding the subject and removing the background…",94);
+ if(engine.mode==="raw"){
+  const output=await engine.remover([imageUrl]);const result=output?.[0];
+  if(!result)throw new Error("The AI model returned no result.");
+  const blob=await result.toBlob();if(!blob)throw new Error("Could not create the transparent PNG.");
+  const original=await loadImage(state.file);return {blob,width:original.w,height:original.h};
+ }
  const output=await engine.remover(imageUrl);const result=output?.[0];
  if(!result?.mask)throw new Error("The AI model did not return a foreground mask.");
- const original=await loadImage(state.file);
- const maskCanvas=result.mask.toCanvas();
+ const original=await loadImage(state.file);const maskCanvas=result.mask.toCanvas();
  const outputCanvas=document.createElement("canvas");outputCanvas.width=original.w;outputCanvas.height=original.h;
  const ctx=outputCanvas.getContext("2d",{willReadFrequently:true});
  ctx.drawImage(original.canvas,0,0);ctx.globalCompositeOperation="destination-in";ctx.drawImage(maskCanvas,0,0,original.w,original.h);
  const blob=await new Promise(resolve=>outputCanvas.toBlob(resolve,"image/png"));
- if(!blob)throw new Error("Could not create the transparent PNG.");
- return {blob,width:original.w,height:original.h};
+ if(!blob)throw new Error("Could not create the transparent PNG.");return {blob,width:original.w,height:original.h};
 }
 $("process").addEventListener("click",async()=>{
  if(!state.file)return;
