@@ -25,7 +25,7 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img{
 <main class="wrap">
 <section class="intro"><div class="eyebrow">AI IMAGE TOOL</div><h1>Remove image backgrounds</h1><p>Keep the subject and make everything behind it transparent. Your photo is processed on your device and is never uploaded to Tendora.</p></section>
 <section class="panel">
-<div class="drop" id="drop"><strong>Drop an image here</strong><p>or choose a photo from your device</p><button class="btn" id="choose" type="button">Choose image</button><input id="file" type="file" accept="image/png,image/jpeg,image/webp"><div class="small">JPG, PNG or WebP · Up to 20 MB · Best results with a clear subject</div></div>
+<div class="drop" id="drop"><strong>Drop an image here</strong><p>or choose a photo from your device</p><button class="btn" id="choose" type="button">Choose image</button><input id="file" type="file" accept="image/png,image/jpeg,image/webp"><div class="small">JPG, PNG or WebP · Up to 20 MB · First-use AI download: about 104 MB on WebGPU or 44 MB on compatibility mode</div></div>
 <div class="fileline" id="fileline"><img id="thumb" alt="Selected image preview"><div class="fileinfo"><strong id="filename"></strong><div class="small" id="filesize"></div></div><button class="btn secondary" id="clear" type="button">Remove</button></div>
 <div class="actions"><button class="btn" id="process" type="button" disabled>Remove background</button><button class="btn secondary" id="download" type="button" disabled>Download transparent PNG</button></div>
 <div class="progress" id="progress"><div class="progress-head"><span id="progressText">Preparing AI model…</span><span id="percent">0%</span></div><div class="track"><div class="fill" id="fill"></div></div></div>
@@ -33,7 +33,7 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img{
 <section class="results" id="results"><h2>Compare your image</h2><div class="previews"><div class="preview"><div class="preview-head">Original image</div><div class="preview-body"><img id="original" alt="Original uploaded image"></div></div><div class="preview"><div class="preview-head">Background removed</div><div class="preview-body"><img id="output" alt="Image with transparent background"></div></div></div><div class="result-meta" id="resultMeta"></div></section>
 <div class="privacy">Private by design · No account · No watermark · No image upload</div>
 </section>
-<p class="fineprint">The AI model is downloaded the first time you use this tool and cached by your browser. Processing happens locally. Results depend on the photo and device; transparent objects, motion blur and very fine hair can be difficult for automated background removal.</p>
+<p class="fineprint">The AI model is downloaded the first time you use this tool and cached by your browser. Processing happens locally. High-quality BiRefNet Lite is used on WebGPU; the smaller ORMBG model is the compatibility fallback. Model licenses: <a href="https://huggingface.co/clevr-tools/birefnet-lite-web" target="_blank" rel="noopener">BiRefNet Lite (MIT)</a> and <a href="https://huggingface.co/Orangebot/ormbg-ONNX" target="_blank" rel="noopener">ORMBG (Apache-2.0)</a>. Results depend on the photo and device; transparent objects, motion blur and very fine hair can be difficult for automated background removal.</p>
 </main>
 <script type="module">
 const $=id=>document.getElementById(id);
@@ -80,7 +80,7 @@ async function loadBiRefNet(){
 async function loadFallback(){
  const {pipeline}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2");
  progress("Loading the compact AI model…",15);
- const remover=await pipeline("background-removal","onnx-community/ormbg-ONNX",{device:"wasm",dtype:"uint8",progress_callback:x=>{if(x.status==="progress"&&x.total)progress("Downloading compact AI model…",Math.min(85,x.loaded/x.total*85))}});
+ const remover=await pipeline("background-removal","Orangebot/ormbg-ONNX",{device:"wasm",dtype:"uint8",progress_callback:x=>{if(x.status==="progress"&&x.total)progress("Downloading compact AI model…",Math.min(85,x.loaded/x.total*85))}});
  return {remover,engine:"ORMBG · WebAssembly"};
 }
 async function loadImage(file){
