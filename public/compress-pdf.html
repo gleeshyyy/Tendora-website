@@ -65,7 +65,7 @@ function status(s,err=false){$('status').textContent=s;$('status').className='st
 function size(n){return n<1024*1024?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'}
 function updateLang(){const w=words[lang];for(const id of ['back','eyebrow','heading','subheading','dropTitle','dropText','choose','qualityLabel','qualityHint','compress','privacy'])$(id).textContent=w[id]||$(id).textContent;$('quality').options[0].text=w.screen;$('quality').options[1].text=w.ebook;$('quality').options[2].text=w.printer;$('quality').options[3].text=w.prepress;$('lang').textContent=lang==='en'?'Kinyarwanda':'English';}
 $('lang').addEventListener('click',()=>{lang=lang==='en'?'rw':'en';updateLang()});
-function chooseFile(f){if(!f)return;if(f.type!=='application/pdf'&&!f.name.toLowerCase().endsWith('.pdf')){status(t('bad'),true);return}file=f;$('filebox').hidden=false;$('filebox').style.display='flex';$('filename').textContent=f.name;$('filesize').textContent=size(f.size);$('dropTitle').textContent=f.name;$('dropText').textContent=size(f.size)+' · PDF selected. Choose another file to replace it.';$('dropTitle').textContent=f.name;$('compress').disabled=false;$('result').style.display='none';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}status('PDF ready to compress.')}
+function chooseFile(f){if(!f)return;file=f;$('filebox').hidden=false;$('filebox').style.display='flex';$('filename').textContent=f.name;$('filesize').textContent=size(f.size);$('dropTitle').textContent=f.name;$('dropText').textContent=size(f.size)+' · PDF selected. Choose another file to replace it.';$('dropTitle').textContent=f.name;$('compress').disabled=false;$('result').style.display='none';if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}status('PDF ready to compress.')}
 function readSelectedFile(){const input=$('picker');const selected=input.files&&input.files.length?input.files[0]:null;if(selected){chooseFile(selected);return}if(input.value)status('A file was selected, but the browser did not provide its contents. Please choose it again.',true)}
 $('picker').addEventListener('change',readSelectedFile);
 $('picker').addEventListener('cancel',()=>status('No file was selected.'));
@@ -89,6 +89,8 @@ $('compress').addEventListener('click',async()=>{
   if(!window.WasmZooGhostscript||typeof window.WasmZooGhostscript.loadHosted!=='function')throw new Error('Ghostscript hosted loader is unavailable');
   gs=window.WasmZooGhostscript.loadHosted({baseUrl:hostedBase});status(t('working'));
   const input=new Uint8Array(await file.arrayBuffer());
+  const signature=new TextDecoder().decode(input.slice(0,1024));
+  if(!signature.includes('%PDF-'))throw new Error(t('bad'));
   const preset=$('quality').value;
   const resolution=preset==='screen'?72:preset==='ebook'?150:preset==='printer'?300:600;
   const args=['-dSAFER','-dBATCH','-dNOPAUSE','-dQUIET','-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dPDFSETTINGS=/'+preset,'-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dDownsampleColorImages=true','-dColorImageDownsampleType=/Bicubic','-dColorImageResolution='+resolution,'-dDownsampleGrayImages=true','-dGrayImageDownsampleType=/Bicubic','-dGrayImageResolution='+resolution,'-dDownsampleMonoImages=true','-dMonoImageResolution='+Math.max(150,resolution),'-sOutputFile=/out/compressed.pdf','/input/source.pdf'];
