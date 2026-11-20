@@ -588,7 +588,7 @@ async function createSession(adminId,request,env) {
 
 const analyticsTracker = `<script>
 (()=> {
- const toolPages=new Set(["/cv-builder.html","/merge-pdf.html","/split-pdf.html","/pdf-to-word.html","/pdf-to-images.html","/compress-pdf.html","/rotate-pdf.html","/add-page-numbers.html","/word-to-pdf.html","/excel-to-pdf.html","/text-to-pdf.html","/image-to-pdf.html","/image-converter.html","/image-compressor.html","/qr-code-generator.html","/png-to-jpg.html"]);
+ const toolPages=new Set(["/cv-builder.html","/merge-pdf.html","/split-pdf.html","/pdf-to-word.html","/pdf-to-images.html","/compress-pdf.html","/rotate-pdf.html","/add-page-numbers.html","/word-to-pdf.html","/excel-to-pdf.html","/text-to-pdf.html","/image-to-pdf.html","/image-converter.html","/image-compressor.html","/qr-code-generator.html","/png-to-jpg.html","/background-remover.html","/background-remover"]);
  const pagePath=location.pathname||"/";let visitorId="";
  try{visitorId=localStorage.getItem("tendora_visitor_id")||""}catch{}
  if(!/^[a-f0-9-]{36}$/i.test(visitorId)){
