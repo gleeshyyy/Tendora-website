@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101b35">
-<meta name="description" content="Split a PDF into separate documents in your browser. Your files stay on your device.">
+<meta name="description" content="Split a PDF into separate files by page range. Choose the pages for each output document and download the results together in a ZIP file.">
 <title>Split PDF — Tendora</title>
 <style>
 :root{--navy:#101b35;--blue:#315cf5;--ink:#18233b;--muted:#68738a;--line:#e7eaf1;--bg:#f7f8fc}
@@ -15,15 +15,15 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 </style>
 <style id="tendora-progress-style">#tendora-work-progress{position:fixed;z-index:9999;left:50%;bottom:18px;transform:translate(-50%,18px);width:min(440px,calc(100vw - 28px));padding:13px 15px 14px;background:#fff;border:1px solid #e3e9f4;border-radius:14px;box-shadow:0 12px 36px #14213d24;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s}#tendora-work-progress.visible{opacity:1;visibility:visible;transform:translate(-50%,0)}#tendora-work-progress .tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px;font:700 12px/1.4 system-ui,sans-serif;color:#34415a}#tendora-work-progress .tp-state{font-size:11px;font-weight:800;color:#315cf5}#tendora-work-progress .tp-track{height:7px;background:#e9edf6;border-radius:20px;overflow:hidden}#tendora-work-progress .tp-bar{height:100%;width:38%;border-radius:20px;background:linear-gradient(90deg,#315cf5,#8ba5ff);transform:translateX(-110%);animation:tp-slide 1.15s ease-in-out infinite}#tendora-work-progress.done .tp-bar{width:100%;transform:none;animation:none;background:linear-gradient(90deg,#159957,#43c77d)}#tendora-work-progress.failed .tp-bar{width:100%;transform:none;animation:none;background:#dc4444}#tendora-work-progress.done .tp-state{color:#16834b}#tendora-work-progress.failed .tp-state{color:#c52b25}@keyframes tp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}@media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}</style>
 
-<link rel="canonical" href="https://tendora.gleesh.workers.dev/split-pdf.html">
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/split-pdf">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tendora">
 <meta property="og:title" content="Split PDF — Tendora">
-<meta property="og:description" content="Split a PDF into separate documents in your browser. Your files stay on your device.">
-<meta property="og:url" content="https://tendora.gleesh.workers.dev/split-pdf.html">
+<meta property="og:description" content="Split a PDF into separate files by page range. Choose the pages for each output document and download the results together in a ZIP file.">
+<meta property="og:url" content="https://tendora.gleesh.workers.dev/split-pdf">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Split PDF — Tendora">
-<meta name="twitter:description" content="Split a PDF into separate documents in your browser. Your files stay on your device.">
+<meta name="twitter:description" content="Split a PDF into separate files by page range. Choose the pages for each output document and download the results together in a ZIP file.">
 </head>
 <body>
 <header><div class="wrap nav"><a class="brand" href="/">tendora<span>.</span></a><div style="display:flex;gap:10px;align-items:center"><a class="back" href="/#tools" id="back">← All tools</a><button class="lang" id="lang" type="button">Kinyarwanda</button></div></div></header>
@@ -35,6 +35,7 @@ html{max-width:100%;overflow-x:hidden}body{max-width:100%;overflow-x:hidden}img,
 <div class="bottom"><div class="status" id="status" role="status" aria-live="polite"></div><button class="btn" id="split" type="button" disabled>Split and download ZIP</button></div>
 <div class="privacy" id="privacy">Privacy: your PDF is processed in this browser. Its contents are not uploaded to Tendora.</div>
 </section>
+<section class="seo-help"><h2>Split a PDF by page range</h2><p>Select a PDF and enter the page ranges you want to extract. Separate ranges with commas to create different output files. For example, 1-3, 4-6, 7 creates three documents.</p><p>Page numbers start at 1. Check that each range is within the document's page count and that the ranges contain the pages you need.</p><h2>When splitting a PDF is useful</h2><p>Extract selected chapters, separate forms or divide a long document into smaller parts. Tendora creates a ZIP containing the output PDFs. Your source document remains unchanged and is processed in your browser.</p></section>
 </main>
 <footer>© 2026 GLEESHYYY · A GLEESHYYY platform</footer>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
