@@ -71,9 +71,12 @@ window.tendoraPdfFileChanged=function(input){
  status.textContent='PDF selected. Preparing compression…';
  status.classList.remove('error');
  window.dispatchEvent(new CustomEvent('tendora:pdf-selected',{detail:{file:file}}));
- if(window.tendoraPdfCompressorReady)button.disabled=false;
- else status.textContent='PDF selected, but the compressor script did not load. Reload the page and try again.';
+ button.disabled=false;
 };
+window.addEventListener('error',function(event){
+ const s=document.getElementById('status');
+ if(s)s.textContent='Compressor script error: '+(event.message||'Unknown JavaScript error');
+});
 </script>
 <script>
 (() => {
