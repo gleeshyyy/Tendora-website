@@ -8,13 +8,9 @@ function size(n){return n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(
 function say(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
 function clearResult(){resultBox.classList.remove('show');if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null}downloadLink.removeAttribute('href')}
 function selectFile(file){if(!file)return;selectedFile=file;fileName.textContent=file.name||'Selected PDF';fileSize.textContent=size(file.size);fileCard.classList.add('show');button.disabled=false;clearResult();say('PDF selected. Ready to compress.')}
-function syncPicker(){const f=picker.files&&picker.files.length?picker.files[0]:null;if(f&&f!==selectedFile)selectFile(f)}
-picker.addEventListener('change',syncPicker);
-picker.addEventListener('input',syncPicker);
-document.addEventListener('change',e=>{if(e.target===picker)syncPicker()},true);
-window.addEventListener('focus',()=>setTimeout(syncPicker,250));
-window.addEventListener('pageshow',()=>setTimeout(syncPicker,250));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(syncPicker,250)});
+window.addEventListener('tendora:pdf-selected',event=>{if(event.detail&&event.detail.file)selectFile(event.detail.file)});
+window.tendoraPdfCompressorReady=true;
+if(picker&&picker.files&&picker.files[0])selectFile(picker.files[0]);
 function loadEngine(){
  if(window.WasmZooGhostscript&&typeof window.WasmZooGhostscript.loadHosted==='function')return Promise.resolve();
  if(enginePromise)return enginePromise;
