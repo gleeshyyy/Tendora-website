@@ -73,7 +73,7 @@ $('compress').addEventListener('click',async()=>{
  const button=$('compress');button.disabled=true;status(t('loading'));$('result').style.display='none';
  let gs=null;
  try{
-  const {load}=await import('https://esm.sh/@wasm-zoo/ghostscript@0.7.2');
+  const {load}=await import('https://cdn.jsdelivr.net/npm/@wasm-zoo/ghostscript@0.7.2/+esm');
   gs=await load();status(t('working'));
   const input=new Uint8Array(await file.arrayBuffer());
   const preset=$('quality').value;
