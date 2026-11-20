@@ -59,8 +59,8 @@ for(const ev of ["dragenter","dragover"]){$("drop").addEventListener(ev,e=>{e.pr
 for(const ev of ["dragleave","drop"]){$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("drag")})}
 $("drop").addEventListener("drop",e=>selectFile(e.dataTransfer?.files?.[0]));
 async function loadBiRefNet(){
- const ort=await import("https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.webgpu.min.mjs");
- ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/";
+ const ort=await import("https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort.webgpu.min.mjs");
+ ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/";
  const url="https://huggingface.co/clevr-tools/birefnet-lite-web/resolve/main/birefnet_lite_768_fp16w.onnx";
  const cache=await caches.open("tendora-birefnet-lite-v1");
  let response=await cache.match(url),buffer;
