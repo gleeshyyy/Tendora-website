@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://tendora.gleesh.workers.dev/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/jobs.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/cv-builder.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/merge-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/split-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/pdf-to-word.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/pdf-to-images.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/compress-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/rotate-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/add-page-numbers.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/word-to-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/text-to-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/image-to-pdf.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/image-converter.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/image-compressor.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/qr-code-generator.html</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://tendora.gleesh.workers.dev/png-to-jpg.html</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/jobs</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/cv-builder</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/merge-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/split-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/pdf-to-word</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/pdf-to-images</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/compress-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/rotate-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/add-page-numbers</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/word-to-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/text-to-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/image-to-pdf</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/image-converter</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/image-compressor</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/qr-code-generator</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://tendora.gleesh.workers.dev/png-to-jpg</loc><lastmod>2026-11-20</lastmod></url>
 </urlset>
