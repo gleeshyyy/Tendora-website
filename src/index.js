@@ -182,7 +182,7 @@ async function api(request,env) {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   const body=await request.json().catch(()=>null),visitorId=String(body?.visitorId||"").trim(),eventType=String(body?.eventType||""),pagePath=String(body?.pagePath||"").split("?")[0].slice(0,140);
   if(!/^[a-f0-9-]{36}$/i.test(visitorId)||!/^\/[a-z0-9/_-]{0,139}$/i.test(pagePath)||pagePath.includes("..")) return json({error:"Invalid analytics event."},400);
-  const toolMap={"/cv-builder.html":"cv-builder","/merge-pdf.html":"merge-pdf","/split-pdf.html":"split-pdf","/pdf-to-word.html":"pdf-to-word","/pdf-to-images.html":"pdf-to-images","/compress-pdf.html":"compress-pdf","/rotate-pdf.html":"rotate-pdf","/add-page-numbers.html":"add-page-numbers","/word-to-pdf.html":"word-to-pdf","/excel-to-pdf.html":"word-to-pdf","/text-to-pdf.html":"text-to-pdf","/image-to-pdf.html":"image-to-pdf","/image-converter.html":"image-converter","/image-compressor.html":"image-compressor","/qr-code-generator.html":"qr-code-generator","/png-to-jpg.html":"png-to-jpg","/background-remover.html":"background-remover","/background-remover":"background-remover"};
+  const toolMap={"/cv-builder.html":"cv-builder","/merge-pdf.html":"merge-pdf","/split-pdf.html":"split-pdf","/pdf-to-word.html":"pdf-to-word","/pdf-to-images.html":"pdf-to-images","/compress-pdf.html":"compress-pdf","/rotate-pdf.html":"rotate-pdf","/add-page-numbers.html":"add-page-numbers","/word-to-pdf.html":"word-to-pdf","/excel-to-pdf.html":"word-to-pdf","/text-to-pdf.html":"text-to-pdf","/image-to-pdf.html":"image-to-pdf","/image-converter.html":"image-converter","/image-compressor.html":"image-compressor","/qr-code-generator.html":"qr-code-generator","/png-to-jpg.html":"png-to-jpg"};
   const toolKey=toolMap[pagePath]||null;
   if(!["page_view","tool_use","heartbeat"].includes(eventType)||(eventType==="tool_use"&&!toolKey)) return json({error:"Unsupported analytics event."},400);
   const visitorHash=await digest(visitorId),now=new Date().toISOString();
@@ -238,7 +238,7 @@ async function api(request,env) {
   return json({ok:true},200, { "set-cookie":cookie("",0) });
  }
  if(path==="/api/tools" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 ORDER BY category,display_name").all();
+  const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 AND tool_key!='background-remover' ORDER BY category,display_name").all();
   return json({tools:rows.results||[]},200,{"cache-control":"public, max-age=60, s-maxage=60"});
  }
  const admin=await currentAdmin(request,env);
@@ -602,7 +602,7 @@ async function createSession(adminId,request,env) {
 
 const analyticsTracker = `<script>
 (()=> {
- const toolPages=new Set(["/cv-builder.html","/merge-pdf.html","/split-pdf.html","/pdf-to-word.html","/pdf-to-images.html","/compress-pdf.html","/rotate-pdf.html","/add-page-numbers.html","/word-to-pdf.html","/excel-to-pdf.html","/text-to-pdf.html","/image-to-pdf.html","/image-converter.html","/image-compressor.html","/qr-code-generator.html","/png-to-jpg.html","/background-remover.html","/background-remover"]);
+ const toolPages=new Set(["/cv-builder.html","/merge-pdf.html","/split-pdf.html","/pdf-to-word.html","/pdf-to-images.html","/compress-pdf.html","/rotate-pdf.html","/add-page-numbers.html","/word-to-pdf.html","/excel-to-pdf.html","/text-to-pdf.html","/image-to-pdf.html","/image-converter.html","/image-compressor.html","/qr-code-generator.html","/png-to-jpg.html"]);
  const pagePath=location.pathname||"/";let visitorId="";
  try{visitorId=localStorage.getItem("tendora_visitor_id")||""}catch{}
  if(!/^[a-f0-9-]{36}$/i.test(visitorId)){
@@ -624,7 +624,7 @@ const analyticsTracker = `<script>
 export default {
  async fetch(request,env) {
   const url=new URL(request.url);
-  if(url.pathname.startsWith("/hf-models/")) { try { return await proxyBackgroundModel(request,url); } catch(error) { console.error("Background model proxy failed:",String(error)); return new Response("Model download failed.",{status:502}); } }
+  if(["/background-remover","/background-remover/","/background-remover.html"].includes(url.pathname)||url.pathname.startsWith("/hf-models/")) return new Response("Not found.",{status:404,headers:{"cache-control":"no-store"}});
   if(url.pathname==="/admin" || url.pathname==="/admin/") return Response.redirect(new URL("/admin.html",url),302);
   if(url.pathname.startsWith("/api/")) {
    try { return await api(request,env); }
