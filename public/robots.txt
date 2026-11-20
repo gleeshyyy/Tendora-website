@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /background-remover
 
 Sitemap: https://tendora.gleesh.workers.dev/sitemap.xml
