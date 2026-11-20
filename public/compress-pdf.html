@@ -18,6 +18,7 @@ input[type=file]{display:block;width:100%;min-height:48px;padding:8px;border:1px
 .file-card{display:none;align-items:center;gap:12px;padding:13px;margin-top:16px;border:1px solid var(--line);border-radius:11px}.file-card.show{display:flex}.pdf-icon{width:40px;height:44px;display:grid;place-items:center;border-radius:8px;background:#fff0f0;color:#c43d3d;font-size:11px;font-weight:850;flex:none}.file-meta{min-width:0;flex:1}.file-name{font-size:13px;font-weight:750;overflow-wrap:anywhere}.file-size{font-size:12px;color:var(--muted)}
 .field{margin-top:20px}.field label{display:block;margin-bottom:7px;font-size:13px;font-weight:750}.field select{width:100%;padding:13px;border:1px solid #dce2ee;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:14px}.hint{font-size:12px;color:var(--muted);margin:7px 0 0}
 .actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.btn{min-height:46px;padding:12px 19px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:750;font-size:14px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.status{flex:1;min-width:180px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.status.error{color:var(--red)}
+.progress-wrap{display:none;margin-top:16px}.progress-wrap.show{display:block}.progress-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;color:var(--muted);font-size:12px;font-weight:700}.progress-track{height:9px;overflow:hidden;border-radius:99px;background:#e9edf6}.progress-fill{height:100%;width:0;border-radius:99px;background:var(--blue);transition:width .25s ease}.progress-wrap.indeterminate .progress-fill{width:38%;animation:progress-slide 1.25s ease-in-out infinite alternate}.progress-wrap.complete .progress-fill{width:100%;background:var(--green);animation:none}@keyframes progress-slide{from{transform:translateX(0)}to{transform:translateX(165%)}}
 .result{display:none;margin-top:18px;padding:15px;border:1px solid #b8e3cb;border-radius:11px;background:#eff9f3}.result.show{display:block}.result strong{display:block;font-size:14px}.result p{font-size:12px;color:#52715f;margin:5px 0 12px}.download{display:inline-block;padding:10px 14px;border-radius:8px;background:var(--green);color:white;font-size:13px;font-weight:750}
 .privacy{margin-top:18px;padding:12px 14px;border-radius:10px;background:#eff9f3;color:#52715f;font-size:12px}.small{margin-top:10px;color:#8a94a7;font-size:11px}
 footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}
@@ -49,6 +50,7 @@ footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}
 <p class="hint">Strong compression reduces image resolution more. Light compression preserves more detail.</p>
 </div>
 <div class="actions"><div class="status" id="status" role="status" aria-live="polite">Select a PDF to begin.</div><button class="btn" id="compress" type="button" disabled>Compress PDF</button></div>
+<div class="progress-wrap" id="progress-wrap" aria-live="polite"><div class="progress-label"><span id="progress-label">Preparing…</span><span id="progress-value"> </span></div><div class="progress-track" role="progressbar" aria-label="PDF compression progress"><div class="progress-fill" id="progress-fill"></div></div></div>
 <div class="result" id="result"><strong id="result-title">Your compressed PDF is ready</strong><p id="result-detail"></p><a class="download" id="download" href="#" download="tendora-compressed.pdf">Download compressed PDF</a></div>
 <div class="privacy">Privacy: the PDF is processed on your device in your browser. It is not uploaded to Tendora. The compression engine is downloaded when you first use this tool.</div>
 <p class="small">Powered by Ghostscript WebAssembly. First-time engine download may take a little while.</p>
@@ -83,10 +85,12 @@ window.addEventListener('error',function(event){
 'use strict';
 const ENGINE_BASE='https://cdn.jsdelivr.net/npm/@wasm-zoo/ghostscript@0.7.2/';
 const $=id=>document.getElementById(id);
-const picker=$('pdf-file'),fileCard=$('file-card'),fileName=$('file-name'),fileSize=$('file-size'),status=$('status'),button=$('compress'),resultBox=$('result'),resultDetail=$('result-detail'),downloadLink=$('download');
+const picker=$('pdf-file'),fileCard=$('file-card'),fileName=$('file-name'),fileSize=$('file-size'),status=$('status'),button=$('compress'),resultBox=$('result'),resultDetail=$('result-detail'),downloadLink=$('download'),progressWrap=$('progress-wrap'),progressLabel=$('progress-label'),progressValue=$('progress-value');
 let selectedFile=null,downloadUrl=null,enginePromise=null,busy=false;
 function size(n){return n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'}
 function say(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
+function showProgress(label,complete=false){progressWrap.classList.add('show');progressWrap.classList.toggle('complete',complete);progressWrap.classList.toggle('indeterminate',!complete);progressLabel.textContent=label;progressValue.textContent=complete?'100%':''}
+function hideProgress(){progressWrap.classList.remove('show','complete','indeterminate')}
 function clearResult(){resultBox.classList.remove('show');if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null}downloadLink.removeAttribute('href')}
 function selectFile(file){if(!file)return;selectedFile=file;fileName.textContent=file.name||'Selected PDF';fileSize.textContent=size(file.size);fileCard.classList.add('show');button.disabled=false;clearResult();say('PDF selected. Ready to compress.')}
 window.addEventListener('tendora:pdf-selected',event=>{if(event.detail&&event.detail.file)selectFile(event.detail.file)});
@@ -109,12 +113,13 @@ function argsFor(level){
 }
 button.addEventListener('click',async()=>{
  if(busy)return;if(!selectedFile){say('Select a PDF file first.',true);return}
- busy=true;button.disabled=true;clearResult();say('Preparing compression…');let runner=null;
+ busy=true;button.disabled=true;clearResult();say('Preparing compression…');showProgress('Preparing PDF');let runner=null;
  try{
   const head=new TextDecoder().decode(new Uint8Array(await selectedFile.slice(0,1024).arrayBuffer()));
   if(!head.includes('%PDF-'))throw new Error('This file does not appear to be a valid PDF.');
-  await loadEngine();say('Loading Ghostscript WebAssembly. First use may take longer…');
+  say('Loading Ghostscript WebAssembly. First use may take longer…');showProgress('Loading compression engine');await loadEngine();
   runner=await window.WasmZooGhostscript.loadHosted({baseUrl:ENGINE_BASE});
+  say('Compressing PDF…');showProgress('Compressing PDF');
   const result=await runner.exec(argsFor($('quality').value),{files:[{name:'/input/original.pdf',data:selectedFile}],dirs:['/input','/output'],outputs:['/output/compressed.pdf'],timeoutMs:600000});
   const output=result.files.find(f=>f.name==='/output/compressed.pdf');
   if(!output||!output.data||output.data.byteLength<8)throw new Error('The compression engine did not produce a PDF.');
@@ -125,8 +130,8 @@ button.addEventListener('click',async()=>{
   const sizeComparison=diff>0?pct+'% smaller':diff<0?pct+'% larger':'about the same size';
   resultDetail.textContent='Original: '+size(selectedFile.size)+' · Compressed: '+size(blob.size)+' · Result: '+sizeComparison+(diff<=0?'. This PDF did not become smaller at this quality level.':'.');
   downloadLink.href=downloadUrl;downloadLink.download=(selectedFile.name||'document.pdf').replace(/\.pdf$/i,'')+'-compressed.pdf';
-  resultBox.classList.add('show');say('Compression finished.');
- }catch(e){console.error('Tendora PDF compressor:',e);say(e&&e.message?e.message:'Compression failed. Try another PDF.',true)}
+  resultBox.classList.add('show');say('Compression finished.');showProgress('Compression complete',true);
+ }catch(e){console.error('Tendora PDF compressor:',e);hideProgress();say(e&&e.message?e.message:'Compression failed. Try another PDF.',true)}
  finally{if(runner&&runner.dispose)runner.dispose();busy=false;button.disabled=!selectedFile}
 });
 window.addEventListener('beforeunload',()=>{if(downloadUrl)URL.revokeObjectURL(downloadUrl)});
