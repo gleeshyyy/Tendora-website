@@ -639,8 +639,10 @@ export default {
   let html=await assetResponse.text();
   if(!html.includes("</body>")) return assetResponse;
   if(pagePath!=="/index.html" && !html.includes('id="tendora-global-menu"')){
-   if(/<header\\b[\\s\\S]*?<\\/header>/i.test(html)) html=html.replace(/<header\\b[\\s\\S]*?<\\/header>/i,sharedNavigationMarkup);
-   else html=html.replace(/<body\\b[^>]*>/i,match=>match+sharedNavigationMarkup);
+   const headerStart=html.indexOf("<header");
+   const headerEnd=headerStart>=0?html.indexOf("</header>",headerStart):-1;
+   if(headerStart>=0 && headerEnd>=0) html=html.slice(0,headerStart)+sharedNavigationMarkup+html.slice(headerEnd+9);
+   else {const bodyStart=html.indexOf("<body");const bodyEnd=bodyStart>=0?html.indexOf(">",bodyStart):-1;if(bodyEnd>=0)html=html.slice(0,bodyEnd+1)+sharedNavigationMarkup+html.slice(bodyEnd+1);}
    html=html.replace("</head>",sharedNavigationAssets+"</head>");
   }
   const headers=new Headers(assetResponse.headers);
