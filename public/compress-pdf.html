@@ -34,7 +34,7 @@ footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}
 <div class="picker-area">
 <strong>Select your PDF</strong>
 <p>Choose one PDF file from your phone or computer.</p>
-<input id="pdf-file" type="file" accept="application/pdf,.pdf" aria-label="Select PDF file">
+<input id="pdf-file" type="file" accept="application/pdf,.pdf" aria-label="Select PDF file" onchange="window.tendoraPdfFileChanged(this)">
 </div>
 <div class="file-card" id="file-card" aria-live="polite">
 <div class="pdf-icon">PDF</div><div class="file-meta"><div class="file-name" id="file-name"></div><div class="file-size" id="file-size"></div></div>
@@ -55,6 +55,26 @@ footer{padding:20px 0 28px;color:#8a94a7;font-size:12px;text-align:center}
 </section>
 </main>
 <footer>© 2026 GLEESHYYY · A GLEESHYYY platform</footer>
-<script src="/compress-pdf.js?v=2"></script>
+<script>
+window.tendoraPdfFileChanged=function(input){
+ const file=input&&input.files&&input.files[0];
+ if(!file)return;
+ const card=document.getElementById('file-card');
+ const name=document.getElementById('file-name');
+ const size=document.getElementById('file-size');
+ const status=document.getElementById('status');
+ const button=document.getElementById('compress');
+ if(!card||!name||!size||!status||!button)return;
+ name.textContent=file.name||'Selected PDF';
+ size.textContent=file.size<1048576?(file.size/1024).toFixed(1)+' KB':(file.size/1048576).toFixed(2)+' MB';
+ card.classList.add('show');
+ status.textContent='PDF selected. Preparing compression…';
+ status.classList.remove('error');
+ window.dispatchEvent(new CustomEvent('tendora:pdf-selected',{detail:{file:file}}));
+ if(window.tendoraPdfCompressorReady)button.disabled=false;
+ else status.textContent='PDF selected, but the compressor script did not load. Reload the page and try again.';
+};
+</script>
+<script src="/compress-pdf.js?v=3"></script>
 </body>
 </html>
