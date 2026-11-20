@@ -146,6 +146,20 @@ async function discoverFromSource(source) {
  return result;
 }
 
+async function proxyBackgroundModel(request,url) {
+ const modelPath=url.pathname.slice("/hf-models/".length);
+ if(!/^Orangebot\/ormbg-ONNX\/resolve\/main\/(?:config\.json|preprocessor_config\.json|onnx\/model_(?:uint8|fp16)\.onnx)$/.test(modelPath)) return new Response("Not found.",{status:404});
+ if(!["GET","HEAD"].includes(request.method)) return new Response("Method not allowed.",{status:405,headers:{Allow:"GET, HEAD"}});
+ const upstreamUrl=new URL("https://huggingface.co/"+modelPath+url.search);
+ const headers=new Headers();
+ for(const name of ["range","if-range","if-none-match","if-modified-since"]) { const value=request.headers.get(name);if(value)headers.set(name,value); }
+ const upstream=await fetch(upstreamUrl.href,{method:request.method,headers,redirect:"follow"});
+ const responseHeaders=new Headers(upstream.headers);
+ responseHeaders.set("cache-control","public, max-age=86400");
+ responseHeaders.delete("set-cookie");
+ return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});
+}
+
 async function api(request,env) {
  const url=new URL(request.url), path=url.pathname, method=request.method;
  if(path==="/api/jobs" && method==="GET") {
@@ -610,6 +624,7 @@ const analyticsTracker = `<script>
 export default {
  async fetch(request,env) {
   const url=new URL(request.url);
+  if(url.pathname.startsWith("/hf-models/")) { try { return await proxyBackgroundModel(request,url); } catch(error) { console.error("Background model proxy failed:",String(error)); return new Response("Model download failed.",{status:502}); } }
   if(url.pathname==="/admin" || url.pathname==="/admin/") return Response.redirect(new URL("/admin.html",url),302);
   if(url.pathname.startsWith("/api/")) {
    try { return await api(request,env); }
