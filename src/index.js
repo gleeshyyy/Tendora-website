@@ -639,11 +639,9 @@ export default {
   if(request.method!=="GET" || pagePath==="/admin.html" || !assetResponse.ok || !(assetResponse.headers.get("content-type")||"").includes("text/html")) return assetResponse;
   let html=await assetResponse.text();
   if(!html.includes("</body>")) return assetResponse;
-  if(pagePath!=="/index.html"){
-   const hs=html.indexOf("<header"),he=hs>=0?html.indexOf("</header>",hs):-1;
-   if(hs>=0&&he>=0)html=html.slice(0,hs)+sharedNavigationMarkup+html.slice(he+9);
-   else {const bs=html.indexOf("<body"),be=bs>=0?html.indexOf(">",bs):-1;if(be>=0)html=html.slice(0,be+1)+sharedNavigationMarkup+html.slice(be+1);}
-  }
+  const hs=html.indexOf("<header"),he=hs>=0?html.indexOf("</header>",hs):-1;
+  if(hs>=0&&he>=0)html=html.slice(0,hs)+sharedNavigationMarkup+html.slice(he+9);
+  else {const bs=html.indexOf("<body"),be=bs>=0?html.indexOf(">",bs):-1;if(be>=0)html=html.slice(0,be+1)+sharedNavigationMarkup+html.slice(be+1);}
   const fs=html.indexOf("<footer"),fe=fs>=0?html.indexOf("</footer>",fs):-1;
   if(fs>=0&&fe>=0)html=html.slice(0,fs)+sharedFooterMarkup+html.slice(fe+9);
   else html=html.replace("</body>",sharedFooterMarkup+"</body>");
