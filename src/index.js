@@ -148,7 +148,7 @@ async function discoverFromSource(source) {
 
 async function proxyBackgroundModel(request,url) {
  const modelPath=url.pathname.slice("/hf-models/".length);
- if(!/^Orangebot\/ormbg-ONNX\/resolve\/main\/(?:config\.json|preprocessor_config\.json|onnx\/model_(?:uint8|fp16)\.onnx)$/.test(modelPath)) return new Response("Not found.",{status:404});
+ if(!/^d30social\/ormbg-ortweb\/resolve\/main\/(?:config\.json|preprocessor_config\.json|onnx\/model_fp16\.onnx)$/.test(modelPath)) return new Response("Not found.",{status:404});
  if(!["GET","HEAD"].includes(request.method)) return new Response("Method not allowed.",{status:405,headers:{Allow:"GET, HEAD"}});
  const upstreamUrl=new URL("https://huggingface.co/"+modelPath+url.search);
  const headers=new Headers();
