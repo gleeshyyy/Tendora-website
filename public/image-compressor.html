@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101b35">
-<meta name="description" content="Compress JPG, PNG and WebP images privately in your browser with Tendora.">
+<meta name="description" content="Compress JPG, PNG and WebP images online. Adjust quality and dimensions, compare file sizes and download an optimized copy privately.">
 <title>Image Compressor — Tendora</title>
 <style>
 :root{--navy:#101b35;--blue:#315cf5;--ink:#18233b;--muted:#68738a;--line:#e7eaf1;--bg:#f7f8fc;--green:#16865d}
@@ -24,7 +24,7 @@
 @keyframes tp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
 @media(prefers-reduced-motion:reduce){#tendora-work-progress .tp-bar{animation:none;transform:none;width:65%}}
 </style>
-<link rel="canonical" href="https://tendora.gleesh.workers.dev/image-compressor.html"><meta property="og:type" content="website"><meta property="og:site_name" content="Tendora"><meta property="og:title" content="Image Compressor — Tendora"><meta property="og:description" content="Compress JPG, PNG and WebP images privately in your browser with Tendora."><meta property="og:url" content="https://tendora.gleesh.workers.dev/image-compressor.html"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Image Compressor — Tendora"><meta name="twitter:description" content="Compress JPG, PNG and WebP images privately in your browser with Tendora."></head>
+<link rel="canonical" href="https://tendora.gleesh.workers.dev/image-compressor"><meta property="og:type" content="website"><meta property="og:site_name" content="Tendora"><meta property="og:title" content="Image Compressor — Tendora"><meta property="og:description" content="Compress JPG, PNG and WebP images online. Adjust quality and dimensions, compare file sizes and download an optimized copy privately."><meta property="og:url" content="https://tendora.gleesh.workers.dev/image-compressor"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Image Compressor — Tendora"><meta name="twitter:description" content="Compress JPG, PNG and WebP images online. Adjust quality and dimensions, compare file sizes and download an optimized copy privately."></head>
 <body>
 <header><div class="wrap nav"><a class="brand" href="/">tendora<span>.</span></a><a class="back" href="/">← Back to Tendora</a></div></header>
 <main class="wrap">
@@ -43,6 +43,7 @@
 <div id="result" class="result" aria-live="polite"><h2>Compression complete</h2><div class="stats"><div class="stat"><small>Original size</small><strong id="originalSize">—</strong></div><div class="stat"><small>New size</small><strong id="newSize">—</strong></div><div class="stat"><small>Size change</small><strong id="saved">—</strong></div></div><div class="subtle" id="resultname"></div><button class="btn download" id="download" type="button">Download compressed image</button></div>
 </section>
 <p class="privacy">Privacy: your image is processed locally in this browser. It is not uploaded to Tendora.</p>
+<section class="seo-help"><h2>Reduce image file size</h2><p>Large images can take longer to upload, share or add to documents. Select a JPG, PNG or WebP image, choose an output format and adjust the quality to balance file size and appearance.</p><p>You can also enter a target width or height when resizing. The tool preserves the image's aspect ratio when dimensions are adjusted. PNG is lossless, so its quality slider does not apply.</p><h2>Choosing image compression settings</h2><ul><li>Use JPG or WebP when a smaller photographic image is important.</li><li>Keep PNG when you need lossless output or transparency.</li><li>Compare the resulting image before using it in a document or website.</li></ul><p>Your image is processed locally in your browser.</p></section>
 </main>
 <script>
 const fileInput=document.getElementById('file'),choose=document.getElementById('choose'),drop=document.getElementById('drop'),compressBtn=document.getElementById('compress'),format=document.getElementById('format'),quality=document.getElementById('quality'),qualityValue=document.getElementById('qualityValue'),widthInput=document.getElementById('width'),heightInput=document.getElementById('height'),resizeBtn=document.getElementById('resizeImage');
