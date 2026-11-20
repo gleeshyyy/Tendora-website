@@ -648,6 +648,11 @@ export default {
   if(!html.includes("/site-navigation.css"))html=html.replace("</head>",sharedNavigationAssets+"</head>");
   const headers=new Headers(assetResponse.headers);
   headers.delete("content-length");headers.delete("content-encoding");headers.delete("etag");headers.delete("last-modified");
+  headers.set("cache-control","no-store, no-cache, must-revalidate, max-age=0");
+  headers.set("cdn-cache-control","no-store");
+  headers.set("cloudflare-cdn-cache-control","no-store");
+  headers.set("pragma","no-cache");
+  headers.set("expires","0");
   return new Response(html.replace("</body>",analyticsTracker+"</body>"),{status:assetResponse.status,statusText:assetResponse.statusText,headers});
  }
 };
