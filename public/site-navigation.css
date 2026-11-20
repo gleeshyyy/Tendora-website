@@ -1,1 +1,60 @@
-.tendora-global-header{position:sticky;top:0;z-index:100;height:72px;background:#fff;border-bottom:1px solid #e7eaf1;box-shadow:0 4px 18px #101b3508}.tendora-global-header *{box-sizing:border-box}.tendora-global-nav{width:min(1120px,calc(100% - 40px));height:100%;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;font-family:Inter,system-ui,sans-serif}.tendora-global-brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:#101b35;text-decoration:none;white-space:nowrap}.tendora-global-brand span{color:#315cf5}.tendora-global-links{display:flex;align-items:center;gap:24px;color:#526078;font-size:14px;font-weight:700}.tendora-global-links a,.tendora-global-services>summary{display:flex;align-items:center;gap:7px;min-height:44px;color:#526078;text-decoration:none;font-size:14px;font-weight:700;cursor:pointer;list-style:none}.tendora-global-services>summary::-webkit-details-marker{display:none}.tendora-global-links a:hover,.tendora-global-services>summary:hover{color:#315cf5}.tendora-global-chevron{font-size:17px;transition:transform .18s}.tendora-global-services[open] .tendora-global-chevron{transform:rotate(180deg)}.tendora-global-mega{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:min(760px,calc(100vw - 40px));display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:24px;padding:22px;background:#fff;border:1px solid #e7eaf1;border-radius:16px;box-shadow:0 22px 55px #101b3526;max-height:calc(100vh - 100px);overflow:auto}.tendora-global-group{display:flex;flex-direction:column;align-items:stretch;gap:4px}.tendora-global-group strong{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8a95aa;padding:0 10px 8px}.tendora-global-group a{padding:8px 10px;border-radius:8px;font-size:13px;color:#34415b;font-weight:600;line-height:1.3;min-height:0}.tendora-global-group a:hover{background:#f0f3ff;color:#315cf5}.tendora-global-group a[data-featured=true]::before{content:"★ ";color:#e3a008}.tendora-global-actions{display:flex;align-items:center;gap:10px}.tendora-global-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;min-height:42px;border:1px solid #e7eaf1;border-radius:10px;background:#fff;color:#18233b;text-decoration:none;font-size:13px;font-weight:750}.tendora-global-btn.primary{background:#315cf5;border-color:#315cf5;color:#fff;box-shadow:0 7px 18px #315cf52b}.tendora-global-toggle,.tendora-global-mobile-actions{display:none}@media(max-width:760px){.tendora-global-header{height:64px}.tendora-global-nav{width:calc(100% - 32px);gap:12px}.tendora-global-brand{font-size:24px}.tendora-global-toggle{display:flex;width:44px;height:44px;flex-direction:column;justify-content:center;align-items:center;gap:5px;border:1px solid #e7eaf1;border-radius:10px;background:#fff;margin-left:auto;cursor:pointer}.tendora-global-toggle span{width:18px;height:2px;border-radius:2px;background:#101b35;transition:transform .2s,opacity .2s}.tendora-global-toggle[aria-expanded=true] span:first-child{transform:translateY(7px) rotate(45deg)}.tendora-global-toggle[aria-expanded=true] span:nth-child(2){opacity:0}.tendora-global-toggle[aria-expanded=true] span:last-child{transform:translateY(-7px) rotate(-45deg)}.tendora-global-actions{display:none}.tendora-global-links{display:none;position:absolute;left:0;right:0;top:calc(100% + 1px);padding:12px 16px 18px;background:#fff;border:1px solid #e7eaf1;border-top:0;border-radius:0 0 14px 14px;box-shadow:0 18px 32px #101b351c;align-items:stretch;gap:5px;max-height:calc(100dvh - 66px);overflow:auto}.tendora-global-links.is-open{display:flex;flex-direction:column}.tendora-global-links>a,.tendora-global-services>summary{width:100%;padding:10px 12px;border-radius:8px;min-height:46px}.tendora-global-services[open]>summary{background:#f4f6ff;color:#315cf5}.tendora-global-mega{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px 8px 8px;border:0;border-radius:0;box-shadow:none}.tendora-global-group{gap:2px}.tendora-global-group strong{padding:4px 8px 6px}.tendora-global-group a{padding:9px 8px;font-size:13px}.tendora-global-mobile-actions{display:block;padding:8px 4px 0}.tendora-global-mobile-actions .tendora-global-btn{width:100%}}@media(max-width:420px){.tendora-global-mega{grid-template-columns:1fr 1fr;column-gap:8px}.tendora-global-group a{font-size:12px;padding:8px 6px}}
+/* Shared Tendora site header and directory footer */
+.tendora-shared-header{position:sticky;top:0;z-index:100;height:72px;background:#fff;border-bottom:1px solid #e7eaf1;box-shadow:0 4px 18px #101b3508}
+.tendora-shared-header *,.tendora-shared-footer *{box-sizing:border-box}
+.tendora-shared-header .nav{width:min(1120px,calc(100% - 40px));height:100%;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px;position:relative}
+.tendora-shared-header .brand,.tendora-shared-footer .brand{font-size:25px;font-weight:850;letter-spacing:-1.3px;color:#101b35;text-decoration:none;white-space:nowrap}
+.tendora-shared-header .brand span,.tendora-shared-footer .brand span{color:#315cf5}
+.tendora-shared-header .links{display:flex;align-items:center;gap:25px;color:#526078;font-size:14px;font-weight:700}
+.tendora-shared-header .nav-link,.tendora-shared-header .services-menu>summary{display:flex;align-items:center;gap:7px;min-height:44px;color:#526078;text-decoration:none;font-size:14px;font-weight:700;cursor:pointer;list-style:none}
+.tendora-shared-header .services-menu>summary::-webkit-details-marker{display:none}
+.tendora-shared-header .services-menu>summary:hover,.tendora-shared-header .nav-link:hover{color:#315cf5}
+.tendora-shared-header .chevron{font-size:17px;transition:transform .18s}
+.tendora-shared-header .services-menu[open]>summary .chevron{transform:rotate(180deg)}
+.tendora-shared-header .mega-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:min(760px,calc(100vw - 40px));display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:24px;padding:22px;background:#fff;border:1px solid #e7eaf1;border-radius:16px;box-shadow:0 22px 55px #101b3526;max-height:calc(100vh - 100px);overflow:auto}
+.tendora-shared-header .menu-group{display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.tendora-shared-header .menu-group strong{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8a95aa;padding:0 10px 8px}
+.tendora-shared-header .menu-group a{padding:8px 10px;border-radius:8px;font-size:13px;color:#34415b;font-weight:600;line-height:1.3;text-decoration:none}
+.tendora-shared-header .menu-group a:hover{background:#f0f3ff;color:#315cf5}
+.tendora-shared-header .actions{display:flex;gap:10px;align-items:center}
+.tendora-shared-header .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;border:1px solid #e7eaf1;background:#fff;color:#18233b;text-decoration:none}
+.tendora-shared-header .btn.primary{background:#315cf5;color:#fff;border-color:#315cf5;box-shadow:0 7px 18px #315cf52b}
+.tendora-shared-header .menu-toggle,.tendora-shared-header .mobile-actions{display:none}
+.tendora-shared-footer{background:#101b35!important;color:#d6deee;padding:42px 0 22px;margin-top:0}
+.tendora-shared-footer .wrap{width:min(1120px,calc(100% - 40px));margin:0 auto}
+.tendora-footer-top{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:25px;border-bottom:1px solid #ffffff20}
+.tendora-shared-footer .brand{color:#fff}
+.tendora-footer-top p{margin:0;color:#aebbd1;font-size:13px}
+.tendora-footer-directory{display:grid;grid-template-columns:1fr 1.25fr 1.25fr 1fr;gap:30px;padding:28px 0 30px}
+.tendora-footer-group{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0}
+.tendora-footer-group h3{margin:0 0 5px;color:#fff;font-size:13px;font-weight:800}
+.tendora-footer-group a{color:#bdc8dc;text-decoration:none;font-size:12px;line-height:1.45}
+.tendora-footer-group a:hover,.tendora-footer-bottom a:hover{color:#fff;text-decoration:underline}
+.tendora-footer-tool-list{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.tendora-footer-bottom{border-top:1px solid #ffffff20;padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;color:#91a0ba;font-size:12px}
+.tendora-footer-bottom div{display:flex;gap:18px;flex-wrap:wrap}
+.tendora-footer-bottom a{color:#aebbd1;text-decoration:none}
+@media(max-width:760px){
+ .tendora-shared-header{height:64px}
+ .tendora-shared-header .nav{width:calc(100% - 32px);gap:12px}
+ .tendora-shared-header .brand{font-size:24px}
+ .tendora-shared-header .menu-toggle{display:flex;width:44px;height:44px;flex-direction:column;justify-content:center;align-items:center;gap:5px;border:1px solid #e7eaf1;border-radius:10px;background:#fff;margin-left:auto;cursor:pointer}
+ .tendora-shared-header .menu-toggle span{width:18px;height:2px;border-radius:2px;background:#101b35;transition:transform .2s,opacity .2s}
+ .tendora-shared-header .menu-toggle[aria-expanded=true] span:first-child{transform:translateY(7px) rotate(45deg)}
+ .tendora-shared-header .menu-toggle[aria-expanded=true] span:nth-child(2){opacity:0}
+ .tendora-shared-header .menu-toggle[aria-expanded=true] span:last-child{transform:translateY(-7px) rotate(-45deg)}
+ .tendora-shared-header .desktop-actions{display:none}
+ .tendora-shared-header .links{display:none;position:absolute;left:0;right:0;top:calc(100% + 1px);padding:12px 16px 18px;background:#fff;border:1px solid #e7eaf1;border-top:0;border-radius:0 0 14px 14px;box-shadow:0 18px 32px #101b351c;align-items:stretch;gap:5px;max-height:calc(100dvh - 66px);overflow:auto}
+ .tendora-shared-header .links.menu-open{display:flex;flex-direction:column}
+ .tendora-shared-header .nav-link,.tendora-shared-header .services-menu>summary{width:100%;padding:10px 12px;border-radius:8px;min-height:46px}
+ .tendora-shared-header .services-menu[open]>summary{background:#f4f6ff;color:#315cf5}
+ .tendora-shared-header .mega-menu{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px 8px 8px;border:0;border-radius:0;box-shadow:none}
+ .tendora-shared-header .menu-group{gap:2px}
+ .tendora-shared-header .menu-group strong{padding:4px 8px 6px}
+ .tendora-shared-header .menu-group a{padding:9px 8px;font-size:13px}
+ .tendora-shared-header .mobile-actions{display:block;padding:8px 4px 0}
+ .tendora-shared-header .mobile-actions .btn{width:100%}
+ .tendora-footer-directory{grid-template-columns:1fr 1fr;gap:25px 18px}
+ .tendora-footer-top{align-items:flex-start;flex-direction:column;gap:8px}
+ .tendora-footer-bottom{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:420px){.tendora-shared-header .mega-menu{grid-template-columns:1fr 1fr;column-gap:8px}.tendora-shared-header .menu-group a{font-size:12px;padding:8px 6px}.tendora-footer-directory{gap:22px 12px}.tendora-footer-group a{font-size:11px}}
