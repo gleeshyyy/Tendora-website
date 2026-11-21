@@ -35,7 +35,7 @@ function safePublicUrl(value) {
 }
 function validApplicationTarget(value,request) {
  const target=String(value||"").trim();
- const email=/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(target);
+ const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
  return email || validJobLink(target,request);
 }
 function validJobLink(value,request) {
