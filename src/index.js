@@ -264,7 +264,7 @@ async function api(request,env) {
   await env.DB.prepare("INSERT INTO chat_conversations(id,visitor_token_hash,visitor_name,last_message_at) VALUES(?,?,?,?)").bind(id,await digest(token),name,now).run();
   return json({conversationId:id,token,name},201);
  }
- const publicChatMatch=path.match(/^\\/api\\/chat\\/(conversations|messages)$/);
+ const publicChatMatch=path.match(/^\/api\/chat\/(conversations|messages)$/);
  if(publicChatMatch && method==="GET") {
   const id=String(url.searchParams.get("conversationId")||""), token=String(url.searchParams.get("token")||"");
   if(!/^[a-f0-9-]{36}$/i.test(id)||token.length<32) return json({error:"Conversation not found."},404);
@@ -298,7 +298,7 @@ async function api(request,env) {
    key="chat/"+id+"/"+crypto.randomUUID();
    expires=new Date(Date.now()+72*60*60*1000).toISOString();
    await env.CHAT_UPLOADS.put(key,file.stream(),{httpMetadata:{contentType:type,cacheControl:"private, no-store"},customMetadata:{conversationId:id,expiresAt:expires}});
-   name=String(file.name||"image").replace(/[\\/\\x00-\\x1f]/g,"_").slice(0,120);
+   name=String(file.name||"image").replace(/[\/\\x00-\\x1f]/g,"_").slice(0,120);
    size=file.size;
   }
   const messageId=crypto.randomUUID(),now=new Date().toISOString();
@@ -306,7 +306,7 @@ async function api(request,env) {
   await env.DB.prepare("UPDATE chat_conversations SET visitor_unread=0,admin_unread=admin_unread+1,last_message_at=? WHERE id=?").bind(now,id).run();
   return json({ok:true,messageId},201);
  }
- const visitorImageMatch=path.match(/^\\/api\\/chat\\/image\\/([a-f0-9-]+)$/i);
+ const visitorImageMatch=path.match(/^\/api\/chat\/image\/([a-f0-9-]+)$/i);
  if(visitorImageMatch && method==="GET") {
   const messageId=visitorImageMatch[1],id=String(url.searchParams.get("conversationId")||""),token=String(url.searchParams.get("token")||"");
   const row=await env.DB.prepare("SELECT m.attachment_key,m.attachment_type,m.attachment_expires_at,c.visitor_token_hash FROM chat_messages m JOIN chat_conversations c ON c.id=m.conversation_id WHERE m.id=? AND m.conversation_id=? AND m.sender='visitor'").bind(messageId,id).first();
@@ -325,7 +325,7 @@ async function api(request,env) {
   const rows=await env.DB.prepare("SELECT c.id,c.visitor_name,c.visitor_unread,c.admin_unread,c.last_message_at,c.created_at,(SELECT body FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,(SELECT attachment_type FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_attachment FROM chat_conversations c ORDER BY c.last_message_at DESC LIMIT 300").all();
   return json({conversations:rows.results||[]});
  }
- const adminChatMatch=path.match(/^\\/api\\/admin\\/messages\\/([a-f0-9-]+)(?:\\/(reply))?$/i);
+ const adminChatMatch=path.match(/^\/api\/admin\/messages\/([a-f0-9-]+)(?:\/(reply))?$/i);
  if(adminChatMatch) {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can access contact messages."},403);
   const id=adminChatMatch[1],action=adminChatMatch[2]||null;
@@ -358,7 +358,7 @@ async function api(request,env) {
    return json({ok:true});
   }
  }
- const adminImageMatch=path.match(/^\\/api\\/admin\\/messages\\/([a-f0-9-]+)\\/image\\/([a-f0-9-]+)$/i);
+ const adminImageMatch=path.match(/^\/api\/admin\/messages\/([a-f0-9-]+)\/image\/([a-f0-9-]+)$/i);
  if(adminImageMatch && method==="GET") {
   if(!["owner","admin"].includes(admin.role))return json({error:"Not authorized."},403);
   const row=await env.DB.prepare("SELECT attachment_key,attachment_type,attachment_expires_at FROM chat_messages WHERE id=? AND conversation_id=? AND sender='visitor'").bind(adminImageMatch[2],adminImageMatch[1]).first();
@@ -757,7 +757,7 @@ const analyticsTracker = `<script>
 
 const sharedNavigationMarkup = "<header class=\"tendora-shared-header\"><div class=\"wrap nav\"><a class=\"brand\" href=\"/\">tendora<span>.</span></a><button class=\"menu-toggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"site-menu\" aria-label=\"Open navigation\"><span></span><span></span><span></span></button><nav class=\"links\" id=\"site-menu\" aria-label=\"Main navigation\"><a class=\"nav-link\" href=\"/jobs\">Find jobs</a><details class=\"services-menu\"><summary>All services <span class=\"chevron\">⌄</span></summary><div class=\"mega-menu\"><div class=\"menu-group\"><strong>Career</strong><a href=\"/jobs\">Browse Rwanda jobs</a><a href=\"/cv-builder\" data-tool-key=\"cv-builder\">CV Builder</a><a href=\"/cover-letter-builder\" data-tool-key=\"cover-letter-builder\">Cover Letter Builder</a></div><div class=\"menu-group\"><strong>PDF tools</strong><a href=\"/merge-pdf\" data-tool-key=\"merge-pdf\">Merge PDF</a><a href=\"/split-pdf\" data-tool-key=\"split-pdf\">Split PDF</a><a href=\"/compress-pdf\" data-tool-key=\"compress-pdf\">Compress PDF</a><a href=\"/pdf-to-word\" data-tool-key=\"pdf-to-word\">PDF to Word</a><a href=\"/pdf-to-images\" data-tool-key=\"pdf-to-images\">PDF to Images</a><a href=\"/add-page-numbers\" data-tool-key=\"add-page-numbers\">Add Page Numbers</a><a href=\"/word-to-pdf\" data-tool-key=\"word-to-pdf\">Word/Excel to PDF</a><a href=\"/text-to-pdf\" data-tool-key=\"text-to-pdf\">Text to PDF</a></div><div class=\"menu-group\"><strong>Image tools</strong><a href=\"/background-remover\" data-tool-key=\"background-remover\">Background Remover</a><a href=\"/image-to-pdf\" data-tool-key=\"image-to-pdf\">Image to PDF</a><a href=\"/image-converter\" data-tool-key=\"image-converter\">Image Converter</a><a href=\"/image-compressor\" data-tool-key=\"image-compressor\">Image Compressor</a><a href=\"/qr-code-generator\" data-tool-key=\"qr-code-generator\">QR Code Generator</a><a href=\"/png-to-jpg\" data-tool-key=\"png-to-jpg\">PNG to JPG</a></div></div></details><a class=\"nav-link\" href=\"/#about\">About</a><div class=\"mobile-actions\"><a class=\"btn primary\" href=\"/jobs\">Explore jobs</a></div></nav><div class=\"visitor-controls\"><button class=\"theme-icon\" id=\"tendora-theme-toggle\" type=\"button\" aria-label=\"Switch to dark mode\" title=\"Switch to dark mode\"><svg class=\"sun-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42\"></path></svg><svg class=\"moon-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20.8 13.1A8.8 8.8 0 0 1 10.9 3.2 9 9 0 1 0 20.8 13.1Z\"></path></svg></button><label class=\"sr-only\" for=\"tendora-language\">Language</label><select id=\"tendora-language\" aria-label=\"Choose language\"><option value=\"en\">EN</option><option value=\"rw\">RW</option></select></div><div class=\"actions desktop-actions\"><a class=\"btn\" href=\"/jobs\">Explore jobs</a><a class=\"btn primary\" href=\"/#tools\">Get started</a></div></div></header>";
 const sharedFooterMarkup = "<footer class=\"tendora-shared-footer\"><div class=\"wrap\"><div class=\"tendora-footer-top\"><a class=\"brand\" href=\"/\">tendora<span>.</span></a><p>Jobs and useful document tools, all in one place.</p></div><div class=\"tendora-footer-directory\"><section class=\"tendora-footer-group\"><h3>Career</h3><a href=\"/jobs\">Browse Rwanda jobs</a><a href=\"/cv-builder\" data-tool-key=\"cv-builder\">CV Builder</a><a href=\"/cover-letter-builder\" data-tool-key=\"cover-letter-builder\">Cover Letter Builder</a></section><section class=\"tendora-footer-group\" data-footer-category=\"pdf\"><h3>PDF tools</h3><div class=\"tendora-footer-tool-list\"></div></section><section class=\"tendora-footer-group\" data-footer-category=\"image\"><h3>Image tools</h3><div class=\"tendora-footer-tool-list\"></div></section><section class=\"tendora-footer-group\" data-footer-category=\"other\"><h3>More tools</h3><div class=\"tendora-footer-tool-list\"></div><a href=\"/#about\">About Tendora</a></section></div><div class=\"tendora-footer-bottom\"><span>© 2026 GLEESHYYY. All rights reserved. · A GLEESHYYY platform.</span><div><a href=\"/privacy-policy\" data-footer-privacy>Privacy Policy</a><a href=\"/terms-of-use\" data-footer-terms>Terms of Use</a><a href=\"/#about\">About Tendora</a><a href=\"/jobs\">Find jobs</a></div></div></div></footer>";
-const sharedNavigationAssets = '<script>try{const p=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("tendora_theme="));document.documentElement.dataset.theme=p&&decodeURIComponent(p.slice(14))==="dark"?"dark":"light"}catch{document.documentElement.dataset.theme="light"}</script><link rel="stylesheet" href="/site-navigation.css"><script defer src="/site-navigation.js"></script>';
+const sharedNavigationAssets = '<script>try{const p=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("tendora_theme="));document.documentElement.dataset.theme=p&&decodeURIComponent(p.slice(14))==="dark"?"dark":"light"}catch{document.documentElement.dataset.theme="light"}</script><link rel="stylesheet" href="/site-navigation.css"><script defer src="/site-navigation.js"></script><script defer src="/chat-widget.js"></script>';
 
 export default {
  async scheduled(controller,env,ctx) {
@@ -781,7 +781,7 @@ export default {
   }
   const assetResponse=await env.ASSETS.fetch(request);
   const pagePath=url.pathname==="/" ? "/index.html" : url.pathname;
-  if(request.method!=="GET" || pagePath==="/admin.html" || !assetResponse.ok || !(assetResponse.headers.get("content-type")||"").includes("text/html")) return assetResponse;
+  if(request.method!=="GET" || (pagePath==="/admin.html" || pagePath==="/admin-panel" || pagePath==="/admin-panel.html") || !assetResponse.ok || !(assetResponse.headers.get("content-type")||"").includes("text/html")) return assetResponse;
   let html=await assetResponse.text();
   if(!html.includes("</body>")) return assetResponse;
   const hs=html.indexOf("<header"),he=hs>=0?html.indexOf("</header>",hs):-1;
