@@ -109,6 +109,19 @@
  .table-wrap tbody tr.mobile-record>td:first-child:before{display:none}
  .table-wrap tbody tr.mobile-record.record-expanded{border-color:#cbd6f5;box-shadow:0 5px 18px #15213b12}
  .table-wrap tbody tr.mobile-record.record-expanded>td:not(:first-child){max-height:220px;min-height:38px;padding:9px 12px;border-bottom:1px solid #edf0f5;opacity:1;transform:translateY(0);pointer-events:auto}
+ .table-wrap tbody tr.mobile-record>td:first-child{flex-wrap:wrap}
+ .table-wrap tbody tr.mobile-record>td:first-child .record-heading{flex:1 1 100%;min-width:0}
+ .record-status-compact{display:inline-flex;align-items:center;margin-left:2px;white-space:nowrap}
+ .record-actions-compact{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+ .record-action-icon{width:30px;height:30px;display:inline-grid;place-items:center;padding:0;border:1px solid #e1e6f0;border-radius:8px;background:#f7f9fd;color:#315cf5}
+ .record-action-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+ .record-action-icon.delete-icon{color:#c43d4d;background:#fff0f1}
+ .record-action-link{text-decoration:none}
+ .record-actions-expanded{display:none;flex-wrap:wrap;gap:7px}
+ .table-wrap tbody tr.mobile-record.record-expanded>td:first-child .record-status-compact,.table-wrap tbody tr.mobile-record.record-expanded>td:first-child .record-actions-compact{display:none}
+ .table-wrap tbody tr.mobile-record.record-expanded>td:last-child .record-actions-expanded{display:flex}
+ .record-actions-expanded .btn{min-height:40px;padding:9px 13px}
+ .record-actions-expanded .record-danger{background:#fff0f1;color:#c43d4d}
  .table-wrap tbody tr.mobile-record>td:first-child .record-heading{min-width:0;flex:1;overflow-wrap:anywhere}
  .record-expand{flex:0 0 34px;width:34px;height:34px;border:1px solid #dfe5f1;border-radius:9px;background:#f7f9fd;color:#315cf5;display:grid;place-items:center;padding:0;transition:transform .25s ease,background .2s ease}
  .record-expand svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s ease}
@@ -333,11 +346,68 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 
 document.addEventListener("keydown",e=>{if((e.key==="F5"||((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="r"))&&currentAdmin){e.preventDefault();refreshCurrentView()}});
 
-/* Mobile record accordion with per-section session persistence */
+/* Mobile record accordion: status + compact actions, persistent expansion */
 (function(){
  const storageKey="tendora_mobile_expanded_records_v1";
  const readState=()=>{try{return JSON.parse(sessionStorage.getItem(storageKey)||"{}")}catch{return {}}};
  const writeState=s=>{try{sessionStorage.setItem(storageKey,JSON.stringify(s))}catch{}};
+ const iconPaths={
+  edit:"<path d='M12 20h9'/><path d='M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z'/>",
+  delete:"<path d='M3 6h18'/><path d='M8 6V4h8v2'/><path d='m19 6-1 14H6L5 6'/><path d='M10 11v5M14 11v5'/>",
+  publish:"<path d='m5 12 5 5L20 7'/><path d='M12 2v4M4.9 4.9l2.8 2.8M19.1 4.9l-2.8 2.8'/>",
+  reject:"<path d='m6 6 12 12M18 6 6 18'/>",
+  convert:"<path d='M7 7h10v10H7z'/><path d='M3 12h4M17 12h4M12 3v4M12 17v4'/>",
+  duplicate:"<rect x='8' y='8' width='12' height='12' rx='2'/><path d='M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3'/>",
+  restore:"<path d='M3 12a9 9 0 1 0 2.6-6.4L3 8'/><path d='M3 3v5h5'/><path d='M12 7v5l3 2'/>",
+  preview:"<path d='M14 3h7v7'/><path d='M10 14 21 3'/><path d='M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6'/>",
+  save:"<path d='m5 12 4 4L19 6'/>",
+  reset:"<path d='M3 12a9 9 0 1 0 2.6-6.4L3 8'/><path d='M3 3v5h5'/>",
+  toggle:"<path d='M12 2v10'/><path d='M5.6 5.6a9 9 0 1 0 12.8 0'/>",
+  fallback:"<circle cx='12' cy='12' r='8'/>"
+ };
+ function actionKind(el){
+  const d=el.dataset||{};
+  if(d.action)return d.action;
+  if(d.discoveryAction)return d.discoveryAction;
+  if(d.binAction)return d.binAction==="permanent-delete"?"delete":"restore";
+  if(d.sourceEdit!==undefined)return "edit";
+  if(d.sourceToggle!==undefined)return "toggle";
+  if(d.adminSave!==undefined)return "save";
+  if(d.adminReset!==undefined)return "reset";
+  if(d.adminStatus!==undefined)return "toggle";
+  if(el.tagName==="A")return "preview";
+  const label=(el.getAttribute("aria-label")||el.title||el.textContent||"").toLowerCase();
+  if(label.includes("delete"))return "delete";
+  if(label.includes("publish"))return "publish";
+  if(label.includes("reject"))return "reject";
+  if(label.includes("restore"))return "restore";
+  if(label.includes("preview"))return "preview";
+  if(label.includes("edit"))return "edit";
+  if(label.includes("reset"))return "reset";
+  if(label.includes("save"))return "save";
+  return "fallback";
+ }
+ function labelFor(el){
+  const kind=actionKind(el);
+  const labels={edit:"Edit",delete:"Delete",publish:"Publish",reject:"Reject",convert:"Convert",duplicate:"Mark duplicate",restore:"Restore",preview:"Preview",save:"Save",reset:"Reset password",toggle:"Enable / disable"};
+  return labels[kind]||((el.textContent||"").trim()||"Open");
+ }
+ function makeIcon(el){
+  const clone=el.cloneNode(true),kind=actionKind(el);
+  clone.className="record-action-icon "+(kind==="delete"?"delete-icon":kind==="edit"||kind==="restore"?"edit-icon":"");
+  clone.setAttribute("aria-label",el.getAttribute("aria-label")||labelFor(el));
+  clone.setAttribute("title",el.getAttribute("title")||labelFor(el));
+  if(clone.tagName==="A")clone.classList.add("record-action-link");
+  clone.innerHTML="<svg viewBox='0 0 24 24' aria-hidden='true'>"+(iconPaths[kind]||iconPaths.fallback)+"</svg>";
+  return clone;
+ }
+ function makeTextAction(el){
+  const clone=el.cloneNode(true),kind=actionKind(el);
+  clone.className="btn "+(kind==="delete"||kind==="reject"?"record-danger":"secondary");
+  clone.textContent=labelFor(el);
+  clone.setAttribute("aria-label",el.getAttribute("aria-label")||labelFor(el));
+  return clone;
+ }
  function enhance(tbody){
   if(!tbody)return;
   const section=tbody.closest("section")?.id||tbody.id||"admin";
@@ -347,21 +417,36 @@ document.addEventListener("keydown",e=>{if((e.key==="F5"||((e.ctrlKey||e.metaKey
    const first=cells[0],heading=document.createElement("span");
    heading.className="record-heading";
    while(first.firstChild)heading.appendChild(first.firstChild);
-   const button=document.createElement("button");button.type="button";button.className="record-expand";button.setAttribute("aria-label","Expand record");button.setAttribute("aria-expanded","false");
-   button.innerHTML="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='m6 9 6 6 6-6'/></svg>";
-   first.append(heading,button);
-   const identity=tr.querySelector("[data-id],[data-action],[data-discovery-action],[data-bin-action],[data-source-edit],[data-admin-save]") ;
-   const stable=identity?(identity.dataset.id||identity.dataset.action||identity.dataset.discoveryAction||identity.dataset.binAction||identity.dataset.sourceEdit||identity.dataset.adminSave):heading.textContent.trim();
+   const expand=document.createElement("button");expand.type="button";expand.className="record-expand";expand.setAttribute("aria-label","Expand record");expand.setAttribute("aria-expanded","false");
+   expand.innerHTML="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='m6 9 6 6 6-6'/></svg>";
+   first.append(heading);
+   const statusCell=cells.find((cell,i)=>i>0&&cell.querySelector(".pill"));
+   if(statusCell){const pill=statusCell.querySelector(".pill").cloneNode(true);pill.classList.add("record-status-compact");first.append(pill)}
+   const actionCell=cells.find(cell=>cell.querySelector(".actions"));
+   if(actionCell){
+    const actions=actionCell.querySelector(".actions"),originals=Array.from(actions.children);
+    if(originals.length){
+     const compact=document.createElement("span");compact.className="record-actions-compact";
+     originals.forEach(el=>compact.append(makeIcon(el)));
+     const expanded=document.createElement("span");expanded.className="record-actions-expanded";
+     originals.forEach(el=>expanded.append(makeTextAction(el)));
+     actions.replaceWith(expanded);
+     first.append(compact);
+    }
+   }
+   first.append(expand);
+   const identity=tr.querySelector("[data-id],[data-action],[data-discovery-action],[data-bin-action],[data-source-edit],[data-source-toggle],[data-admin-save],[data-admin-reset],[data-admin-status]");
+   const stable=identity?(identity.dataset.id||identity.dataset.action||identity.dataset.discoveryAction||identity.dataset.binAction||identity.dataset.sourceEdit||identity.dataset.sourceToggle||identity.dataset.adminSave||identity.dataset.adminReset||identity.dataset.adminStatus):cells.slice(0,3).map(c=>c.textContent.trim()).join("|");
    const key=section+":"+String(stable||heading.textContent).slice(0,180);
    tr.dataset.recordKey=key;tr.dataset.mobileRecordReady="1";tr.classList.add("mobile-record");
-   const state=readState();if(state[key]){tr.classList.add("record-expanded");button.setAttribute("aria-expanded","true");button.setAttribute("aria-label","Collapse record")}
-   button.addEventListener("click",()=>{const expanded=tr.classList.toggle("record-expanded");button.setAttribute("aria-expanded",String(expanded));button.setAttribute("aria-label",expanded?"Collapse record":"Expand record");const current=readState();if(expanded)current[key]=true;else delete current[key];writeState(current)});
+   const state=readState();if(state[key]){tr.classList.add("record-expanded");expand.setAttribute("aria-expanded","true");expand.setAttribute("aria-label","Collapse record")}
+   expand.addEventListener("click",()=>{const isOpen=tr.classList.toggle("record-expanded");expand.setAttribute("aria-expanded",String(isOpen));expand.setAttribute("aria-label",isOpen?"Collapse record":"Expand record");const current=readState();if(isOpen)current[key]=true;else delete current[key];writeState(current)});
   }
  }
  function scan(){document.querySelectorAll(".table-wrap tbody").forEach(enhance)}
  const observer=new MutationObserver(scan);
- document.addEventListener("DOMContentLoaded",()=>{scan();document.querySelectorAll(".table-wrap tbody").forEach(t=>observer.observe(t,{childList:true,subtree:true}))});
- scan();document.querySelectorAll(".table-wrap tbody").forEach(t=>observer.observe(t,{childList:true,subtree:true}));
+ const observe=()=>{scan();document.querySelectorAll(".table-wrap tbody").forEach(t=>observer.observe(t,{childList:true,subtree:true}))};
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",observe,{once:true});else observe();
 })();
 
 boot();
