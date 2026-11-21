@@ -254,9 +254,120 @@ async function api(request,env) {
   const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 AND tool_key!='background-remover' AND tool_key!='rotate-pdf' ORDER BY category,display_name").all();
   return json({tools:rows.results||[]},200,{"cache-control":"no-store, no-cache, must-revalidate"});
  }
+
+ // Public contact chat: conversation tokens are random, stored only as hashes in D1.
+ if(path==="/api/chat/conversations" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  const b=await request.json().catch(()=>null), name=String(b?.name||"").trim().replace(/\\s+/g," ").slice(0,80);
+  if(name.length<2) return json({error:"Please enter your name (at least 2 characters)."},400);
+  const token=randomToken(32), id=crypto.randomUUID(), now=new Date().toISOString();
+  await env.DB.prepare("INSERT INTO chat_conversations(id,visitor_token_hash,visitor_name,last_message_at) VALUES(?,?,?,?)").bind(id,await digest(token),name,now).run();
+  return json({conversationId:id,token,name},201);
+ }
+ const publicChatMatch=path.match(/^\\/api\\/chat\\/(conversations|messages)$/);
+ if(publicChatMatch && method==="GET") {
+  const id=String(url.searchParams.get("conversationId")||""), token=String(url.searchParams.get("token")||"");
+  if(!/^[a-f0-9-]{36}$/i.test(id)||token.length<32) return json({error:"Conversation not found."},404);
+  const conversation=await env.DB.prepare("SELECT id,visitor_name,visitor_token_hash FROM chat_conversations WHERE id=?").bind(id).first();
+  if(!conversation || conversation.visitor_token_hash!==await digest(token)) return json({error:"Conversation not found."},404);
+  await env.DB.prepare("UPDATE chat_conversations SET admin_unread=0 WHERE id=?").bind(id).run();
+  const rows=await env.DB.prepare("SELECT id,sender,body,attachment_type,attachment_name,attachment_size,attachment_expires_at,created_at FROM chat_messages WHERE conversation_id=? ORDER BY created_at ASC LIMIT 300").bind(id).all();
+  const messages=(rows.results||[]).map(m=>({...m,imageUrl:m.attachment_type && m.attachment_expires_at && Date.parse(m.attachment_expires_at)>Date.now()?"/api/chat/image/"+m.id+"?conversationId="+encodeURIComponent(id)+"&token="+encodeURIComponent(token):null,imageExpired:!!m.attachment_type&&(!m.attachment_expires_at||Date.parse(m.attachment_expires_at)<=Date.now())}));
+  return json({conversation:{id,name:conversation.visitor_name},messages});
+ }
+ if(path==="/api/chat/messages" && method==="POST") {
+  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
+  if(!env.CHAT_UPLOADS) return json({error:"Chat image storage is not configured."},503);
+  const contentType=request.headers.get("content-type")||"";
+  let body="",id="",token="",file=null;
+  if(contentType.includes("multipart/form-data")) {
+   const form=await request.formData();id=String(form.get("conversationId")||"");token=String(form.get("token")||"");body=String(form.get("body")||"").trim();file=form.get("image");
+  } else {
+   const b=await request.json().catch(()=>null);id=String(b?.conversationId||"");token=String(b?.token||"");body=String(b?.body||"").trim();
+  }
+  if(!/^[a-f0-9-]{36}$/i.test(id)||token.length<32||(!body&&!file)||body.length>3000) return json({error:"Enter a message or choose an image. Messages must be under 3,000 characters."},400);
+  const conversation=await env.DB.prepare("SELECT id,visitor_token_hash FROM chat_conversations WHERE id=?").bind(id).first();
+  if(!conversation||conversation.visitor_token_hash!==await digest(token)) return json({error:"Conversation not found."},404);
+  const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='visitor' AND created_at>datetime('now','-1 minute')").bind(id).first();
+  if(Number(recent?.n||0)>=12) return json({error:"Please wait a moment before sending more messages."},429);
+  let key=null,type=null,name=null,size=null,expires=null;
+  if(file && typeof file.arrayBuffer==="function" && file.size>0) {
+   type=String(file.type||"").toLowerCase();
+   if(!["image/jpeg","image/png","image/webp"].includes(type)) return json({error:"Use a JPG, PNG or WebP image."},400);
+   if(file.size>5*1024*1024) return json({error:"Images must be 5 MB or smaller."},413);
+   key="chat/"+id+"/"+crypto.randomUUID();
+   expires=new Date(Date.now()+72*60*60*1000).toISOString();
+   await env.CHAT_UPLOADS.put(key,file.stream(),{httpMetadata:{contentType:type,cacheControl:"private, no-store"},customMetadata:{conversationId:id,expiresAt:expires}});
+   name=String(file.name||"image").replace(/[\\/\\x00-\\x1f]/g,"_").slice(0,120);
+   size=file.size;
+  }
+  const messageId=crypto.randomUUID(),now=new Date().toISOString();
+  await env.DB.prepare("INSERT INTO chat_messages(id,conversation_id,sender,body,attachment_key,attachment_type,attachment_name,attachment_size,attachment_expires_at,created_at) VALUES(?,?,'visitor',?,?,?,?,?,?,?)").bind(messageId,id,body,key,type,name,size,expires,now).run();
+  await env.DB.prepare("UPDATE chat_conversations SET visitor_unread=0,admin_unread=admin_unread+1,last_message_at=? WHERE id=?").bind(now,id).run();
+  return json({ok:true,messageId},201);
+ }
+ const visitorImageMatch=path.match(/^\\/api\\/chat\\/image\\/([a-f0-9-]+)$/i);
+ if(visitorImageMatch && method==="GET") {
+  const messageId=visitorImageMatch[1],id=String(url.searchParams.get("conversationId")||""),token=String(url.searchParams.get("token")||"");
+  const row=await env.DB.prepare("SELECT m.attachment_key,m.attachment_type,m.attachment_expires_at,c.visitor_token_hash FROM chat_messages m JOIN chat_conversations c ON c.id=m.conversation_id WHERE m.id=? AND m.conversation_id=? AND m.sender='visitor'").bind(messageId,id).first();
+  if(!row||row.visitor_token_hash!==await digest(token)) return json({error:"Image not found."},404);
+  if(!row.attachment_key||!row.attachment_expires_at||Date.parse(row.attachment_expires_at)<=Date.now()) {if(row.attachment_key)await env.CHAT_UPLOADS.delete(row.attachment_key);return json({error:"This image has expired."},410);}
+  const object=await env.CHAT_UPLOADS.get(row.attachment_key);if(!object)return json({error:"This image is no longer available."},410);
+  return new Response(object.body,{headers:{"content-type":row.attachment_type||"application/octet-stream","cache-control":"private, no-store","x-content-type-options":"nosniff"}});
+ }
+
  const admin=await currentAdmin(request,env);
  if(!admin) return json({error:"Authentication required."},401);
  if(admin.password_reset_required && !(path==="/api/admin/me" && method==="GET") && !(path==="/api/admin/change-password" && method==="POST")) return json({error:"You must change your temporary password before continuing."},403);
+
+ if(path==="/api/admin/messages" && method==="GET") {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can access contact messages."},403);
+  const rows=await env.DB.prepare("SELECT c.id,c.visitor_name,c.visitor_unread,c.admin_unread,c.last_message_at,c.created_at,(SELECT body FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,(SELECT attachment_type FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_attachment FROM chat_conversations c ORDER BY c.last_message_at DESC LIMIT 300").all();
+  return json({conversations:rows.results||[]});
+ }
+ const adminChatMatch=path.match(/^\\/api\\/admin\\/messages\\/([a-f0-9-]+)(?:\\/(reply))?$/i);
+ if(adminChatMatch) {
+  if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can access contact messages."},403);
+  const id=adminChatMatch[1],action=adminChatMatch[2]||null;
+  const conversation=await env.DB.prepare("SELECT id,visitor_name FROM chat_conversations WHERE id=?").bind(id).first();
+  if(!conversation)return json({error:"Conversation not found."},404);
+  if(method==="GET"&&!action) {
+   await env.DB.prepare("UPDATE chat_conversations SET visitor_unread=0 WHERE id=?").bind(id).run();
+   const rows=await env.DB.prepare("SELECT id,sender,body,attachment_type,attachment_name,attachment_size,attachment_expires_at,created_at FROM chat_messages WHERE conversation_id=? ORDER BY created_at ASC LIMIT 300").bind(id).all();
+   const messages=(rows.results||[]).map(m=>({...m,imageUrl:m.attachment_type&&m.attachment_expires_at&&Date.parse(m.attachment_expires_at)>Date.now()?"/api/admin/messages/"+id+"/image/"+m.id:null,imageExpired:!!m.attachment_type&&(!m.attachment_expires_at||Date.parse(m.attachment_expires_at)<=Date.now())}));
+   return json({conversation,messages});
+  }
+  if(method==="POST"&&action==="reply") {
+   if(!sameOrigin(request))return json({error:"Invalid request origin."},403);
+   const b=await request.json().catch(()=>null),body=String(b?.body||"").trim();
+   if(!body||body.length>3000)return json({error:"Enter a reply of up to 3,000 characters."},400);
+   const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='admin' AND created_at>datetime('now','-1 minute')").bind(id).first();
+   if(Number(recent?.n||0)>=30)return json({error:"Please wait before sending more replies."},429);
+   const now=new Date().toISOString(),messageId=crypto.randomUUID();
+   await env.DB.prepare("INSERT INTO chat_messages(id,conversation_id,sender,body,created_at) VALUES(?,?,'admin',?,?)").bind(messageId,id,body,now).run();
+   await env.DB.prepare("UPDATE chat_conversations SET admin_unread=0,visitor_unread=visitor_unread+1,last_message_at=? WHERE id=?").bind(now,id).run();
+   await audit(env,admin.id,"contact_message_replied","chat_conversation",id,{message_id:messageId});
+   return json({ok:true,messageId},201);
+  }
+  if(method==="DELETE"&&!action) {
+   if(!sameOrigin(request))return json({error:"Invalid request origin."},403);
+   const files=await env.DB.prepare("SELECT attachment_key FROM chat_messages WHERE conversation_id=? AND attachment_key IS NOT NULL").bind(id).all();
+   for(const f of files.results||[])await env.CHAT_UPLOADS.delete(f.attachment_key);
+   await env.DB.prepare("DELETE FROM chat_conversations WHERE id=?").bind(id).run();
+   await audit(env,admin.id,"contact_conversation_deleted","chat_conversation",id,{});
+   return json({ok:true});
+  }
+ }
+ const adminImageMatch=path.match(/^\\/api\\/admin\\/messages\\/([a-f0-9-]+)\\/image\\/([a-f0-9-]+)$/i);
+ if(adminImageMatch && method==="GET") {
+  if(!["owner","admin"].includes(admin.role))return json({error:"Not authorized."},403);
+  const row=await env.DB.prepare("SELECT attachment_key,attachment_type,attachment_expires_at FROM chat_messages WHERE id=? AND conversation_id=? AND sender='visitor'").bind(adminImageMatch[2],adminImageMatch[1]).first();
+  if(!row||!row.attachment_key)return json({error:"Image not found."},404);
+  if(!row.attachment_expires_at||Date.parse(row.attachment_expires_at)<=Date.now()){await env.CHAT_UPLOADS.delete(row.attachment_key);return json({error:"This image has expired."},410);}
+  const object=await env.CHAT_UPLOADS.get(row.attachment_key);if(!object)return json({error:"This image is no longer available."},410);
+  return new Response(object.body,{headers:{"content-type":row.attachment_type||"application/octet-stream","cache-control":"private, no-store","x-content-type-options":"nosniff"}});
+ }
+
  if(path==="/api/admin/me" && method==="GET") return json({admin});
  if(path==="/api/admin/change-password" && method==="POST") {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
@@ -655,6 +766,9 @@ export default {
   const deadlineExpiry=env.DB.prepare("UPDATE jobs SET status='expired',updated_at=? WHERE status='published' AND deadline IS NOT NULL AND deadline<>'' AND deadline<?").bind(now,today);
   const noDeadlineReview=env.DB.prepare("UPDATE jobs SET status='pending_approval',updated_at=? WHERE status='published' AND (deadline IS NULL OR deadline='') AND published_at IS NOT NULL AND datetime(published_at)<=datetime('now','-14 days')");
   const results=await env.DB.batch([deadlineExpiry,noDeadlineReview]);
+  const expiredImages=await env.DB.prepare("SELECT id,attachment_key FROM chat_messages WHERE attachment_key IS NOT NULL AND attachment_expires_at IS NOT NULL AND attachment_expires_at<=? LIMIT 100").bind(now).all();
+  for(const item of expiredImages.results||[]){await env.CHAT_UPLOADS.delete(item.attachment_key);await env.DB.prepare("UPDATE chat_messages SET attachment_key=NULL WHERE id=?").bind(item.id).run();}
+  if(expiredImages.results?.length) console.log(JSON.stringify({event:"chat_image_expiry_sweep",deleted:expiredImages.results.length}));
   console.log(JSON.stringify({event:"job_lifecycle_sweep",deadlineExpired:results?.[0]?.meta?.changes||0,movedToReview:results?.[1]?.meta?.changes||0}));
  },
  async fetch(request,env) {
