@@ -322,7 +322,7 @@ async function api(request,env) {
 
  if(path==="/api/admin/messages" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an Owner or Admin can access contact messages."},403);
-  const rows=await env.DB.prepare("SELECT c.id,c.visitor_name,c.visitor_unread,c.admin_unread,c.last_message_at,c.created_at,(SELECT body FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,(SELECT attachment_type FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_attachment FROM chat_conversations c ORDER BY c.last_message_at DESC LIMIT 300").all();
+  const rows=await env.DB.prepare("SELECT c.id,c.visitor_name,c.visitor_unread,c.admin_unread,c.last_message_at,c.created_at,(SELECT body FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_body,(SELECT attachment_type FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_attachment,(SELECT sender FROM chat_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_sender FROM chat_conversations c ORDER BY c.last_message_at DESC LIMIT 300").all();
   return json({conversations:rows.results||[]});
  }
  const adminChatMatch=path.match(/^\/api\/admin\/messages\/([a-f0-9-]+)(?:\/(reply))?$/i);
