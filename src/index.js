@@ -424,12 +424,12 @@ async function api(request,env) {
   return json({jobs:rows.results||[],count:(rows.results||[]).length});
  }
  if(path==="/api/admin/jobs" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs WHERE status NOT IN ('archived','rejected') ORDER BY updated_at DESC LIMIT 200").all();
+  const rows=await env.DB.prepare("SELECT id,title,employer,location,source_url,status,deadline,published_at,updated_at FROM jobs WHERE status NOT IN ('archived','rejected','expired') ORDER BY updated_at DESC LIMIT 200").all();
   return json({jobs:rows.results||[]});
  }
  if(path==="/api/admin/recycle-bin" && method==="GET") {
   if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can access the Recycle Bin."},403);
-  const rows=await env.DB.prepare("SELECT id,title,employer,location,updated_at AS deleted_at FROM jobs WHERE status='archived' ORDER BY updated_at DESC LIMIT 500").all();
+  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,updated_at AS deleted_at FROM jobs WHERE status IN ('archived','expired') ORDER BY updated_at DESC LIMIT 500").all();
   return json({jobs:rows.results||[],count:(rows.results||[]).length});
  }
  if(path==="/api/admin/jobs" && method==="POST") {
@@ -475,23 +475,28 @@ async function api(request,env) {
    }
    if(action==="delete") {
     if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can move published or rejected vacancies to the Recycle Bin."},403);
-    if(job.status!=="published" && job.status!=="rejected") return json({error:"Only published or rejected vacancies can be moved to the Recycle Bin."},409);
+    if(job.status==="pending_approval") {
+     await env.DB.prepare("UPDATE jobs SET status='expired',updated_at=? WHERE id=?").bind(now,jobId).run();
+     await audit(env,admin.id,"job_marked_expired","job",jobId,{title:job.title,method:"admin_review",previous_status:job.status});
+     return json({ok:true,status:"expired"});
+    }
+    if(job.status!=="published" && job.status!=="rejected") return json({error:"Only published, rejected or review-queue vacancies can be moved to the Recycle Bin."},409);
     await env.DB.prepare("UPDATE jobs SET status='archived',updated_at=? WHERE id=?").bind(now,jobId).run();
     await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived",previous_status:job.status});
     return json({ok:true,status:"archived"});
    }
    if(action==="restore") {
     if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can restore archived vacancies."},403);
-    if(job.status!=="archived") return json({error:"Only archived vacancies can be restored."},409);
+    if(job.status!=="archived") return json({error:"Expired vacancies cannot be restored. Only ordinary deleted vacancies can be restored."},409);
     await env.DB.prepare("UPDATE jobs SET status='pending_verification',date_verified=NULL,verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(now,jobId).run();
     await audit(env,admin.id,"job_restored","job",jobId,{title:job.title,new_status:"pending_verification"});
     return json({ok:true,status:"pending_verification"});
    }
    if(action==="permanent-delete") {
     if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can permanently delete vacancies."},403);
-    if(job.status!=="archived") return json({error:"Only archived vacancies can be permanently deleted."},409);
+    if(job.status!=="archived" && job.status!=="expired") return json({error:"Only vacancies in the Recycle Bin can be permanently deleted."},409);
     await audit(env,admin.id,"job_permanently_deleted","job",jobId,{title:job.title});
-    await env.DB.prepare("DELETE FROM jobs WHERE id=? AND status='archived'").bind(jobId).run();
+    await env.DB.prepare("DELETE FROM jobs WHERE id=? AND status IN ('archived','expired')").bind(jobId).run();
     return json({ok:true,status:"deleted"});
    }
    if(action==="reject") {
@@ -644,6 +649,14 @@ const sharedFooterMarkup = "<footer class=\"tendora-shared-footer\"><div class=\
 const sharedNavigationAssets = '<script>try{const p=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("tendora_theme="));document.documentElement.dataset.theme=p&&decodeURIComponent(p.slice(14))==="dark"?"dark":"light"}catch{document.documentElement.dataset.theme="light"}</script><link rel="stylesheet" href="/site-navigation.css"><script defer src="/site-navigation.js"></script>';
 
 export default {
+ async scheduled(controller,env,ctx) {
+  const now=new Date().toISOString();
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const deadlineExpiry=env.DB.prepare("UPDATE jobs SET status='expired',updated_at=? WHERE status='published' AND deadline IS NOT NULL AND deadline<>'' AND deadline<?").bind(now,today);
+  const noDeadlineReview=env.DB.prepare("UPDATE jobs SET status='pending_approval',updated_at=? WHERE status='published' AND (deadline IS NULL OR deadline='') AND published_at IS NOT NULL AND datetime(published_at)<=datetime('now','-14 days')");
+  const results=await env.DB.batch([deadlineExpiry,noDeadlineReview]);
+  console.log(JSON.stringify({event:"job_lifecycle_sweep",deadlineExpired:results?.[0]?.meta?.changes||0,movedToReview:results?.[1]?.meta?.changes||0}));
+ },
  async fetch(request,env) {
   const url=new URL(request.url);
   if(["/background-remover","/background-remover/","/background-remover.html"].includes(url.pathname)||url.pathname.startsWith("/hf-models/")) return new Response("Not found.",{status:404,headers:{"cache-control":"no-store"}});
