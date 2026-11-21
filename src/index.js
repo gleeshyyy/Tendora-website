@@ -793,7 +793,6 @@ export default {
   let pageAssets="";
   if(!html.includes("/site-navigation.css"))pageAssets+='<link rel="stylesheet" href="/site-navigation.css">';
   if(!html.includes("/site-navigation.js"))pageAssets+='<script defer src="/site-navigation.js"></script>';
-  if(!html.includes("/chat-widget.js"))pageAssets+='<script defer src="/chat-widget.js"></script>';
   if(pageAssets)html=html.replace("</head>",pageAssets+"</head>");
   const headers=new Headers(assetResponse.headers);
   headers.delete("content-length");headers.delete("content-encoding");headers.delete("etag");headers.delete("last-modified");
@@ -802,6 +801,7 @@ export default {
   headers.set("cloudflare-cdn-cache-control","no-store");
   headers.set("pragma","no-cache");
   headers.set("expires","0");
+  if(!html.includes("/chat-widget.js"))html=html.replace("</body>",'<script src="/chat-widget.js"></script></body>');
   return new Response(html.replace("</body>",analyticsTracker+"</body>"),{status:assetResponse.status,statusText:assetResponse.statusText,headers});
  }
 };
