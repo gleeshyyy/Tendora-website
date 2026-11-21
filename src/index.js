@@ -428,7 +428,7 @@ async function api(request,env) {
   if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to create jobs."},403);
   const b=await request.json().catch(()=>null);
   const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim(), salary=String(b?.salary||"").trim(), salaryValue=!salary||/^nan$/i.test(salary)?null:salary;
-  if(!title||!employer||!description||(source&&!validJobLink(source,request))||!validJobLink(application,request)) return json({error:"Title, employer and description are required; provide a valid HTTPS application URL and, if available, a valid HTTPS original source URL."},400);
+  if(!title||!employer||!description||(source&&!validJobLink(source,request))||(application&&!validJobLink(application,request))) return json({error:"Title, employer and description are required; any supplied source or application URL must be a valid HTTPS link."},400);
   const id=crypto.randomUUID(), slug=(title+"-"+employer).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,90)+"-"+id.slice(0,8);
   await env.DB.prepare("INSERT INTO jobs(id,slug,title,employer,category,employment_type,location,salary_text,description,qualifications,experience,source_url,application_url,deadline,status,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_verification',?)").bind(id,slug,title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,admin.id).run();
   await audit(env,admin.id,"job_created","job",id,{title,employer,status:"pending_verification"});
@@ -445,7 +445,7 @@ async function api(request,env) {
    if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to edit vacancies."},403);
    const b=await request.json().catch(()=>null);
    const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim(), salary=String(b?.salary||"").trim(), salaryValue=!salary||/^nan$/i.test(salary)?null:salary;
-   if(!title||!employer||!description||(source&&!validJobLink(source,request))||!validJobLink(application,request)) return json({error:"Title, employer and description are required; provide a valid HTTPS application URL and, if available, a valid HTTPS original source URL."},400);
+   if(!title||!employer||!description||(source&&!validJobLink(source,request))||(application&&!validJobLink(application,request))) return json({error:"Title, employer and description are required; any supplied source or application URL must be a valid HTTPS link."},400);
    await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=NULL,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,new Date().toISOString(),jobId).run();
    await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:"pending_verification"});
    return json({ok:true,status:"pending_verification"});
@@ -456,7 +456,7 @@ async function api(request,env) {
    if(action==="publish") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to publish vacancies."},403);
     if(!["pending_verification","rejected"].includes(job.status)) return json({error:"Only vacancies awaiting review can be published."},409);
-    if((job.source_url&&!validJobLink(job.source_url,request)) || !validJobLink(job.application_url,request)) return json({error:"A valid application link is required before publication; the original source link is optional."},400);
+    if((job.source_url&&!validJobLink(job.source_url,request)) || (job.application_url&&!validJobLink(job.application_url,request))) return json({error:"Any supplied source or application URL must be a valid HTTPS link."},400);
     if(job.deadline && job.deadline<now.slice(0,10)) return json({error:"This vacancy deadline has passed. Update the deadline before publication."},400);
     const publishedDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     await env.DB.prepare("UPDATE jobs SET status='published',date_verified=?,verified_by=?,approved_by=?,published_at=?,updated_at=? WHERE id=?").bind(publishedDate,admin.id,admin.id,now,now,jobId).run();
