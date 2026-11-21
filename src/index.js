@@ -288,7 +288,7 @@ async function api(request,env) {
   if(!/^[a-f0-9-]{36}$/i.test(id)||token.length<32||(!body&&!file)||body.length>3000) return json({error:"Enter a message or choose an image. Messages must be under 3,000 characters."},400);
   const conversation=await env.DB.prepare("SELECT id,visitor_token_hash FROM chat_conversations WHERE id=?").bind(id).first();
   if(!conversation||conversation.visitor_token_hash!==await digest(token)) return json({error:"Conversation not found."},404);
-  const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='visitor' AND created_at>datetime('now','-1 minute')").bind(id).first();
+  const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='visitor' AND datetime(created_at)>datetime('now','-1 minute')").bind(id).first();
   if(Number(recent?.n||0)>=12) return json({error:"Please wait a moment before sending more messages."},429);
   let key=null,type=null,name=null,size=null,expires=null;
   if(file && typeof file.arrayBuffer==="function" && file.size>0) {
@@ -341,7 +341,7 @@ async function api(request,env) {
    if(!sameOrigin(request))return json({error:"Invalid request origin."},403);
    const b=await request.json().catch(()=>null),body=String(b?.body||"").trim();
    if(!body||body.length>3000)return json({error:"Enter a reply of up to 3,000 characters."},400);
-   const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='admin' AND created_at>datetime('now','-1 minute')").bind(id).first();
+   const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id=? AND sender='admin' AND datetime(created_at)>datetime('now','-1 minute')").bind(id).first();
    if(Number(recent?.n||0)>=30)return json({error:"Please wait before sending more replies."},429);
    const now=new Date().toISOString(),messageId=crypto.randomUUID();
    await env.DB.prepare("INSERT INTO chat_messages(id,conversation_id,sender,body,created_at) VALUES(?,?,'admin',?,?)").bind(messageId,id,body,now).run();
