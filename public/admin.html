@@ -99,6 +99,25 @@
   .analytics-status-row{grid-template-columns:90px minmax(0,1fr) 24px}
   .profile-crop-card{max-height:92dvh;overflow:auto;padding:17px}
 }
+
+/* Compact, expandable mobile records */
+@media(max-width:700px){
+ .table-wrap tbody tr.mobile-record{padding:0;overflow:hidden;transition:box-shadow .22s ease,border-color .22s ease}
+ .table-wrap tbody tr.mobile-record>td{transition:max-height .28s ease,opacity .22s ease,transform .28s ease,padding .28s ease;max-height:180px;overflow:hidden}
+ .table-wrap tbody tr.mobile-record:not(.record-expanded)>td:not(:first-child){display:flex;max-height:0;min-height:0;padding-top:0;padding-bottom:0;border-bottom:0;opacity:0;transform:translateY(-7px);pointer-events:none}
+ .table-wrap tbody tr.mobile-record>td:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-height:100px;padding:12px;border:0;font-weight:650}
+ .table-wrap tbody tr.mobile-record>td:first-child:before{display:none}
+ .table-wrap tbody tr.mobile-record.record-expanded{border-color:#cbd6f5;box-shadow:0 5px 18px #15213b12}
+ .table-wrap tbody tr.mobile-record.record-expanded>td:not(:first-child){max-height:220px;min-height:38px;padding:9px 12px;border-bottom:1px solid #edf0f5;opacity:1;transform:translateY(0);pointer-events:auto}
+ .table-wrap tbody tr.mobile-record>td:first-child .record-heading{min-width:0;flex:1;overflow-wrap:anywhere}
+ .record-expand{flex:0 0 34px;width:34px;height:34px;border:1px solid #dfe5f1;border-radius:9px;background:#f7f9fd;color:#315cf5;display:grid;place-items:center;padding:0;transition:transform .25s ease,background .2s ease}
+ .record-expand svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s ease}
+ .record-expanded .record-expand{background:#eaf0ff;border-color:#cbd7ff}
+ .record-expanded .record-expand svg{transform:rotate(180deg)}
+ .table-wrap tbody tr.mobile-record>td:not(:first-child):before{flex:0 0 34%;max-width:118px}
+ .table-wrap tbody tr.mobile-record>td[colspan]{display:block;max-height:none;opacity:1;transform:none}
+}
+
 </style></head><body>
 <div id="profileCropModal" class="profile-crop-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileCropTitle"><div class="profile-crop-card"><h2 id="profileCropTitle">Adjust profile photo</h2><p class="muted">Drag the photo to reposition it. Use the slider to zoom in or out.</p><div class="profile-crop-stage"><canvas id="profileCropCanvas" class="profile-crop-canvas" width="512" height="512" aria-label="Profile photo crop preview"></canvas></div><div class="profile-crop-controls"><label for="profileCropZoom">Zoom</label><input id="profileCropZoom" type="range" min="1" max="3" step="0.01" value="1"><div class="profile-crop-note">The circular area is what will appear in your profile picture.</div></div><div id="profileCropMessage" class="message" role="status"></div><div class="profile-crop-actions"><button id="cancelProfileCrop" class="btn secondary" type="button">Cancel</button><button id="confirmProfileCrop" class="btn" type="button">Upload photo</button></div></div></div><div id="auth" class="auth-wrap"><div class="auth-card"><div class="brand">tendora<span>.</span></div><div id="setupBox" class="hidden"><h1>Set up your owner account</h1><p class="muted">Create the first secure administrator account for Tendora.</p><form id="setupForm"><label>One-time setup code</label><input name="setupToken" type="password" required autocomplete="off"><label>Your name</label><input name="name" required minlength="2" autocomplete="name"><label>Email address</label><input name="email" type="email" required autocomplete="email"><label>Password</label><input name="password" type="password" required minlength="8" autocomplete="new-password"><div class="hint">Use at least 8 characters. This account will be the Tendora Owner.</div><button class="btn full">Create owner account</button></form></div><div id="loginBox"><h1>Admin sign in</h1><p class="muted">Sign in to manage Tendora.</p><form id="loginForm"><label>Email address</label><input name="email" type="email" required autocomplete="username"><label>Password</label><input name="password" type="password" required minlength="8" autocomplete="current-password"><div class="password-guidance">Password must contain at least 8 characters. The field turns green when this requirement is met.</div><button class="btn full">Sign in</button></form></div><div id="authMessage" class="message" role="alert"></div></div></div>
 <div id="app" class="app"><button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false" aria-controls="adminSidebar">☰</button><div id="mobileNavBackdrop" class="mobile-nav-backdrop" aria-hidden="true"></div><aside id="adminSidebar" class="sidebar"><div class="brand">tendora<span>.</span></div><div class="nav-label">Workspace</div><nav class="nav"><button class="active" data-view="overview" data-short="⌂"><span>Overview</span></button><button data-view="jobs" data-short="▤"><span>Jobs & Vacancies</span></button><button id="recycleBinNav" data-view="recyclebin" data-short="♲"><span>Recycle Bin</span></button><button data-view="discovery" data-short="⌕"><span>Discovery Queue</span></button><button data-view="sources" data-short="◎"><span>Manage Sources</span></button><button data-view="content" data-short="▧"><span>Website Content</span></button><button data-view="tools" data-short="▣"><span>Document Tools</span></button><div class="nav-label">Administration</div><button data-view="admins" data-short="♙"><span>Administrators</span></button><button data-view="analytics" data-short="▥"><span>Analytics</span></button><button data-view="activity" data-short="◷"><span>Activity Logs</span></button><button data-view="settings" data-short="⚙"><span>Settings</span></button><button data-view="profile" data-short="●"><span>My Profile</span></button></nav><div class="side-bottom">Private administration · Tendora</div></aside><main class="main"><header class="top"><div style="display:flex;align-items:center;gap:10px"><h1 id="viewTitle">Overview</h1><button id="refreshView" class="refresh-btn" type="button" aria-label="Refresh this page" title="Refresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg></button></div><div class="userbox"><div class="avatar" id="avatar">T</div><div class="who"><strong id="adminName">Administrator</strong><div class="muted" id="adminRole">Owner</div></div><button id="logout" class="btn secondary">Sign out</button></div></header>
@@ -313,5 +332,37 @@ addPasswordToggles();
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 document.addEventListener("keydown",e=>{if((e.key==="F5"||((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="r"))&&currentAdmin){e.preventDefault();refreshCurrentView()}});
+
+/* Mobile record accordion with per-section session persistence */
+(function(){
+ const storageKey="tendora_mobile_expanded_records_v1";
+ const readState=()=>{try{return JSON.parse(sessionStorage.getItem(storageKey)||"{}")}catch{return {}}};
+ const writeState=s=>{try{sessionStorage.setItem(storageKey,JSON.stringify(s))}catch{}};
+ function enhance(tbody){
+  if(!tbody)return;
+  const section=tbody.closest("section")?.id||tbody.id||"admin";
+  for(const tr of tbody.rows){
+   if(tr.dataset.mobileRecordReady||tr.querySelector("td[colspan]"))continue;
+   const cells=Array.from(tr.cells);if(cells.length<2)continue;
+   const first=cells[0],heading=document.createElement("span");
+   heading.className="record-heading";
+   while(first.firstChild)heading.appendChild(first.firstChild);
+   const button=document.createElement("button");button.type="button";button.className="record-expand";button.setAttribute("aria-label","Expand record");button.setAttribute("aria-expanded","false");
+   button.innerHTML="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='m6 9 6 6 6-6'/></svg>";
+   first.append(heading,button);
+   const identity=tr.querySelector("[data-id],[data-action],[data-discovery-action],[data-bin-action],[data-source-edit],[data-admin-save]") ;
+   const stable=identity?(identity.dataset.id||identity.dataset.action||identity.dataset.discoveryAction||identity.dataset.binAction||identity.dataset.sourceEdit||identity.dataset.adminSave):heading.textContent.trim();
+   const key=section+":"+String(stable||heading.textContent).slice(0,180);
+   tr.dataset.recordKey=key;tr.dataset.mobileRecordReady="1";tr.classList.add("mobile-record");
+   const state=readState();if(state[key]){tr.classList.add("record-expanded");button.setAttribute("aria-expanded","true");button.setAttribute("aria-label","Collapse record")}
+   button.addEventListener("click",()=>{const expanded=tr.classList.toggle("record-expanded");button.setAttribute("aria-expanded",String(expanded));button.setAttribute("aria-label",expanded?"Collapse record":"Expand record");const current=readState();if(expanded)current[key]=true;else delete current[key];writeState(current)});
+  }
+ }
+ function scan(){document.querySelectorAll(".table-wrap tbody").forEach(enhance)}
+ const observer=new MutationObserver(scan);
+ document.addEventListener("DOMContentLoaded",()=>{scan();document.querySelectorAll(".table-wrap tbody").forEach(t=>observer.observe(t,{childList:true,subtree:true}))});
+ scan();document.querySelectorAll(".table-wrap tbody").forEach(t=>observer.observe(t,{childList:true,subtree:true}));
+})();
+
 boot();
 </script><div id="sectionRefreshLoader" role="status" aria-live="polite"><div class="loader-card"><span class="loader-spin" aria-hidden="true"></span><span>Refreshing this section…</span></div></div></body></html>
