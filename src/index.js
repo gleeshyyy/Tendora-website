@@ -465,7 +465,7 @@ async function api(request,env) {
    const now=new Date().toISOString();
    if(action==="publish") {
     if(!["owner","admin","reviewer"].includes(admin.role)) return json({error:"You do not have permission to publish vacancies."},403);
-    if(!["pending_verification","rejected"].includes(job.status)) return json({error:"Only vacancies awaiting review can be published."},409);
+    if(!["pending_verification","pending_approval","rejected"].includes(job.status)) return json({error:"Only vacancies awaiting review can be published."},409);
     if((job.source_url&&!validJobLink(job.source_url,request)) || (job.application_url&&!validApplicationTarget(job.application_url,request))) return json({error:"A supplied source URL must be HTTPS; an application target must be a valid HTTPS link or email address."},400);
     if(job.deadline && job.deadline<now.slice(0,10)) return json({error:"This vacancy deadline has passed. Update the deadline before publication."},400);
     const publishedDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kigali",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
