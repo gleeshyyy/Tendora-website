@@ -14,11 +14,21 @@
       "database_id": "7bbdea05-d5c5-41f5-badd-bf74d38aab76"
     }
   ],
-  "triggers": { "crons": ["15 * * * *"] },
+  "triggers": {
+    "crons": [
+      "15 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true,
     "traces": {
       "enabled": true
     }
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "CHAT_UPLOADS",
+      "bucket_name": "tendora-chat-uploads"
+    }
+  ]
 }
