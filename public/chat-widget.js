@@ -1,0 +1,43 @@
+(()=> {
+const STYLE=\`
+#tendora-chat-launcher{position:fixed;right:18px;bottom:18px;z-index:9998;border:0;border-radius:999px;background:#315cf5;color:#fff;padding:13px 18px;font:700 14px system-ui;box-shadow:0 8px 28px #17264a35;cursor:pointer}
+#tendora-chat-launcher .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:8px}
+#tendora-chat-panel{position:fixed;z-index:9999;right:18px;bottom:78px;width:min(370px,calc(100vw - 28px));height:min(560px,calc(100dvh - 110px));background:#fff;color:#17233d;border:1px solid #dfe5f0;border-radius:18px;box-shadow:0 16px 55px #101b3530;display:none;overflow:hidden;font:14px system-ui}
+#tendora-chat-panel.open{display:flex;flex-direction:column}
+#tendora-chat-panel *{box-sizing:border-box}
+.tchat-head{background:#101b35;color:white;padding:15px 16px;display:flex;align-items:center;justify-content:space-between}
+.tchat-head strong{font-size:16px}.tchat-head small{display:block;color:#c5d0e5;margin-top:3px}
+.tchat-close{border:0;background:transparent;color:white;font-size:24px;cursor:pointer}
+.tchat-warning{margin:10px 12px 0;padding:9px 10px;background:#fff7df;color:#76520c;border:1px solid #f3dfa6;border-radius:9px;font-size:11px;line-height:1.4}
+.tchat-name{margin:10px 12px 0;padding:10px;border:1px solid #dce2ed;border-radius:9px;width:calc(100% - 24px)}
+.tchat-messages{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+.tchat-msg{max-width:86%;padding:9px 11px;border-radius:13px;background:#f0f3f9;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap}
+.tchat-msg.mine{background:#e8efff;align-self:flex-end}.tchat-msg time{display:block;font-size:10px;color:#718096;margin-top:5px}
+.tchat-msg img{display:block;max-width:100%;max-height:180px;border-radius:8px;margin-top:5px}
+.tchat-expired{font-size:12px;color:#7c8798;font-style:italic}
+.tchat-compose{border-top:1px solid #e8ecf3;padding:10px;display:flex;gap:7px;align-items:flex-end}
+.tchat-compose textarea{flex:1;min-width:0;max-height:90px;resize:vertical;border:1px solid #dce2ed;border-radius:10px;padding:10px;font:14px system-ui}
+.tchat-compose button{border:0;border-radius:9px;background:#315cf5;color:#fff;padding:10px 12px;font-weight:700}
+.tchat-file{font-size:20px;cursor:pointer;padding:5px}.tchat-status{font-size:11px;color:#718096;padding:0 12px 6px}
+@media(max-width:480px){#tendora-chat-launcher{right:12px;bottom:14px}#tendora-chat-panel{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(590px,calc(100dvh - 85px))}}
+\`;
+const s=document.createElement("style");s.textContent=STYLE;document.head.appendChild(s);
+const launch=document.createElement("button");launch.id="tendora-chat-launcher";launch.innerHTML='<span class="dot"></span>Contact Us';
+const panel=document.createElement("section");panel.id="tendora-chat-panel";panel.setAttribute("aria-label","Contact Tendora");
+panel.innerHTML='<div class="tchat-head"><div><strong>Contact Tendora</strong><small>Send us a message</small></div><button class="tchat-close" aria-label="Close">×</button></div><div class="tchat-warning">Image notice: Any image uploaded in this chat automatically disappears 3 days after upload. This applies to both you and our team.</div><input class="tchat-name" maxlength="80" placeholder="Your name" autocomplete="name"><div class="tchat-messages"><div class="tchat-msg">Hello. How can we help you?</div></div><div class="tchat-status" aria-live="polite"></div><form class="tchat-compose"><label class="tchat-file" title="Attach image">＋<input type="file" accept="image/jpeg,image/png,image/webp" hidden></label><textarea rows="1" maxlength="3000" placeholder="Write a message…"></textarea><button type="submit">Send</button></form>';
+document.body.append(launch,panel);
+const $=sel=>panel.querySelector(sel), list=$(".tchat-messages"),status=$(".tchat-status"),nameInput=$(".tchat-name"),textarea=$("textarea"),fileInput=$('input[type=file]');
+let state=null,busy=false,poll=null,chosen=null;
+try{const raw=localStorage.getItem("tendora_chat_session");if(raw)state=JSON.parse(raw)}catch{}
+const save=()=>{try{localStorage.setItem("tendora_chat_session",JSON.stringify(state))}catch{}};
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const time=v=>{try{return new Date(v).toLocaleString()}catch{return ""}};
+function render(messages){list.innerHTML=(messages||[]).map(m=>'<div class="tchat-msg '+(m.sender==="visitor"?"mine":"")+'">'+(m.body?esc(m.body):"")+(m.imageUrl?'<img src="'+esc(m.imageUrl)+'" alt="Shared image">':m.imageExpired?'<div class="tchat-expired">This image has expired and is no longer available.</div>':"")+'<time>'+esc(time(m.created_at))+'</time></div>').join("")||'<div class="tchat-msg">Send us a message and our team will reply here.</div>';list.scrollTop=list.scrollHeight}
+async function load(){if(!state?.conversationId||!state?.token)return;try{const r=await fetch("/api/chat/messages?conversationId="+encodeURIComponent(state.conversationId)+"&token="+encodeURIComponent(state.token),{cache:"no-store"});if(!r.ok){if(r.status===404){state=null;save();status.textContent="Your previous chat could not be restored. Please start a new message."}return}const d=await r.json();nameInput.value=d.conversation.name;render(d.messages)}catch{}}
+async function start(){const n=nameInput.value.trim();if(n.length<2){status.textContent="Enter your name to start the chat.";nameInput.focus();return false}try{const r=await fetch("/api/chat/conversations",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:n})});const d=await r.json();if(!r.ok)throw Error(d.error||"Could not start chat.");state={conversationId:d.conversationId,token:d.token};save();return true}catch(e){status.textContent=e.message;return false}}
+launch.addEventListener("click",()=>{panel.classList.add("open");launch.style.display="none";if(state?.conversationId)load();if(!poll)poll=setInterval(()=>{if(panel.classList.contains("open")&&state)load()},12000);});
+$(".tchat-close").addEventListener("click",()=>{panel.classList.remove("open");launch.style.display=""});
+fileInput.addEventListener("change",()=>{chosen=fileInput.files?.[0]||null;if(chosen)status.textContent="Selected: "+chosen.name+" (maximum 5 MB)";});
+panel.querySelector("form").addEventListener("submit",async e=>{e.preventDefault();if(busy)return;const body=textarea.value.trim();if(!body&&!chosen){status.textContent="Write a message or attach an image.";return}busy=true;const button=panel.querySelector("form button");button.disabled=true;status.textContent="Sending…";try{if(!state&&!await start())return;const form=new FormData();form.append("conversationId",state.conversationId);form.append("token",state.token);form.append("body",body);if(chosen)form.append("image",chosen);const r=await fetch("/api/chat/messages",{method:"POST",body:form});const d=await r.json();if(!r.ok)throw Error(d.error||"Message could not be sent.");textarea.value="";fileInput.value="";chosen=null;status.textContent="Sent";await load()}catch(x){status.textContent=x.message}finally{busy=false;button.disabled=false}});
+if(state?.conversationId)nameInput.value=state.name||"";
+})();
