@@ -53,5 +53,40 @@ async function loadJobs(){try{const response=await fetch("/api/jobs",{headers:{"
 cardsRoot.addEventListener("click",e=>{const toggle=e.target.closest(".read-toggle");if(toggle){const description=toggle.previousElementSibling;const expanded=description.classList.toggle("expanded");toggle.textContent=expanded?"Read less":"Read more...";return}const link=e.target.closest("a.apply[data-job-id]");if(!link)return;try{fetch("/api/analytics/click",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jobId:link.dataset.jobId}),keepalive:true}).catch(()=>{})}catch{}});
 const saveJobPreferences=()=>{try{const prefs={q:q.value.slice(0,120),category:cat.value.slice(0,80),location:loc.value.slice(0,80)};document.cookie="tendora_job_preferences="+encodeURIComponent(JSON.stringify(prefs))+"; Path=/; Max-Age=15552000; SameSite=Lax; Secure"}catch{}};[q,cat,loc].forEach(el=>el.addEventListener(el===q?"input":"change",()=>{saveJobPreferences();render()}));
 loadJobs();
+
+// Page-level language support; wraps vacancy rendering so filters keep the selected language.
+let tendoraJobsLanguage="en";
+const tendoraTranslateJobCards=()=>{
+ if(tendoraJobsLanguage!=="rw")return;
+ document.querySelectorAll("#cards .deadline").forEach(e=>{if(e.textContent.startsWith("Closes "))e.textContent="Igihe cyo gusaba kirangira "+e.textContent.slice(7);else if(e.textContent==="Check employer website")e.textContent="Reba ku rubuga rw’umukoresha"});
+ document.querySelectorAll("#cards .read-toggle").forEach(e=>{e.textContent=e.previousElementSibling?.classList.contains("expanded")?"Soma bike":"Soma ibindi..."});
+ document.querySelectorAll("#cards .req strong").forEach(e=>e.textContent="Ibisabwa n’uburambe:");
+ document.querySelectorAll("#cards .apply").forEach(e=>{if(e.textContent==="Apply")e.textContent="Saba akazi";else if(e.textContent==="View & apply ↗")e.textContent="Reba kandi usabe ↗";else if(e.textContent==="View original job details ↗")e.textContent="Reba ibisobanuro ku rubuga rw’umukoresha ↗"});
+ document.querySelectorAll("#cards .source").forEach(e=>{e.innerHTML=e.innerHTML.replace("Source:","Inkomoko:").replace("Verified","Byagenzuwe")});
+ const c=document.getElementById("count");if(c)c.textContent=c.textContent.replace("opportunities","imyanya y’akazi").replace("opportunity","umwanya w’akazi");
+ const e=document.getElementById("empty");if(e)e.textContent="Nta myanya ihuye n’ishakisha ryawe. Gerageza andi magambo cyangwa ukureho akayunguruzo.";
+};
+const tendoraOriginalJobRender=render;
+render=function(){tendoraOriginalJobRender();tendoraTranslateJobCards()};
+window.tendoraSetPageLanguage=function(lang){
+ tendoraJobsLanguage=lang==="rw"?"rw":"en";const rw=tendoraJobsLanguage==="rw";document.documentElement.lang=tendoraJobsLanguage;
+ const set=(selector,value)=>{const e=document.querySelector(selector);if(e)e.textContent=value};
+ set(".back",rw?"← Garuka ku ntangiriro":"← Back to home");
+ set(".intro .eyebrow",rw?"Amahirwe mu Rwanda":"Rwanda opportunities");
+ set(".intro h1",rw?"Shaka akazi gashya.":"Find your next job.");
+ set(".intro p",rw?"Reba imyanya y’akazi yatoranyijwe mu Rwanda. Suzuma ibisabwa n’igihe ntarengwa, hanyuma usabe akazi unyuze ku rubuga rw’umukoresha.":"Explore selected openings in Rwanda. Check the requirements and deadline, then apply through the employer's own recruitment website.");
+ q.placeholder=rw?"Shakisha izina ry’akazi, umukoresha cyangwa ijambo":"Search job title, employer or keyword";
+ q.setAttribute("aria-label",rw?"Shakisha akazi":"Search jobs");
+ if(cat.options[0])cat.options[0].textContent=rw?"Ibyiciro byose":"All categories";
+ if(loc.options[0])loc.options[0].textContent=rw?"Ahantu hose":"All locations";
+ set(".safety strong",rw?"Umutekano mu gushaka akazi:":"Recruitment safety:");
+ const safety=document.querySelector(".safety");if(safety)safety.lastChild.textContent=rw?" Tendora ntisaba amafaranga yo gusaba akazi. Ntukishyure amafaranga yo gushaka akazi, ikizamini, ikiganiro cyangwa ayo kwishyura ngo utunganyirizwe dosiye. Saba akazi unyuze gusa ku rubuga rwemewe rw’umukoresha kandi ugenzure neza ibisabwa by’amakuru yawe bwite cyangwa y’imari.":" Tendora does not charge applicants to apply. Do not pay recruitment, interview, test or “processing” fees. Apply only through the employer's official website and verify any request for personal or financial information.";
+ const disc=document.querySelector(".disclaimer");if(disc)disc.firstChild.textContent=rw?"Imyanya y’akazi igenzurwa mbere yo gushyirwa ku rubuga, ariko ishobora gufungwa cyangwa guhinduka bitunguranye. Buri gihe banza urebe amakuru mashya ku rubuga rwemewe rw’umukoresha mbere yo gusaba. Iheruka kugenzurwa: ":"Listings are checked before publication, but vacancies can close or change without notice. Always confirm the latest details on the employer's official careers page before applying. Last checked: ";
+ set(".foot a",rw?"Tegura CV ku buntu":"Free CV Builder");
+ const seo=document.querySelector(".seo-help");if(seo){const hs=seo.querySelectorAll("h2"),ps=seo.querySelectorAll("p"),lis=seo.querySelectorAll("li");if(rw){hs[0].textContent="Gushaka akazi mu Rwanda hamwe na Tendora";hs[1].textContent="Irinde uburiganya mu gihe usaba akazi";ps[0].textContent="Tendora yibanda ku mahirwe y’akazi mu Rwanda. Imyanya irashakishwa ikanagenzurwa mbere yo gushyirwa ku rubuga, kandi ishobora kuvugururwa cyangwa gukurwaho igihe umukoresha ahinduye cyangwa ahagaritse igikorwa cyo gushaka abakozi.";ps[1].textContent="Fungura umwanya w’akazi kugira ngo urebe umukoresha, inshingano, aho akazi gaherereye, ibisabwa, amabwiriza yo gusaba n’igihe ntarengwa. Ubu usaba akazi unyuze ku muyoboro wemewe w’umukoresha, ntabwo unyuze kuri konti ya Tendora.";["Emeza umwanya w’akazi n’igihe ntarengwa ku rubuga rwemewe rw’umukoresha.","Ntukishyure umuntu ugushakira akazi ngo usabe, witabire ikiganiro cyangwa uhabwe akazi.","Witondere abasaba ijambo ry’ibanga, PIN ya Mobile Money cyangwa amakuru y’imari y’ibanga."].forEach((v,i)=>{if(lis[i])lis[i].textContent=v})}else{hs[0].textContent="Finding jobs in Rwanda with Tendora";hs[1].textContent="Stay safe when applying for work";ps[0].textContent="Tendora focuses on job opportunities in Rwanda. Vacancies are researched and reviewed before publication, and listings may be updated or removed when an employer changes or closes a recruitment process.";ps[1].textContent="Open a vacancy to review the employer, role, location, qualifications, application instructions and deadline. Applications currently take place through the employer's official recruitment channel, not through a Tendora account.";["Confirm the vacancy and deadline on the employer's official website.","Never pay a recruiter to apply, attend an interview or receive a job offer.","Be careful with requests for passwords, mobile money PINs or sensitive financial information."].forEach((v,i)=>{if(lis[i])lis[i].textContent=v})}}
+ render();
+};
+document.addEventListener("tendora:languagechange",e=>window.tendoraSetPageLanguage(e.detail.language));
+
 </script>
 </body></html>
