@@ -427,10 +427,10 @@ async function api(request,env) {
   if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
   if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to create jobs."},403);
   const b=await request.json().catch(()=>null);
-  const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim();
+  const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim(), salary=String(b?.salary||"").trim(), salaryValue=!salary||/^nan$/i.test(salary)?null:salary;
   if(!title||!employer||!description||!validJobLink(source,request)||!validJobLink(application,request)) return json({error:"Title, employer, description and valid HTTPS source/application URLs are required."},400);
   const id=crypto.randomUUID(), slug=(title+"-"+employer).toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,90)+"-"+id.slice(0,8);
-  await env.DB.prepare("INSERT INTO jobs(id,slug,title,employer,category,employment_type,location,salary_text,description,qualifications,experience,source_url,application_url,deadline,status,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_verification',?)").bind(id,slug,title,employer,b.category||null,b.employmentType||null,b.location||null,b.salary||null,description,b.qualifications||null,b.experience||null,source,application,b.deadline||null,admin.id).run();
+  await env.DB.prepare("INSERT INTO jobs(id,slug,title,employer,category,employment_type,location,salary_text,description,qualifications,experience,source_url,application_url,deadline,status,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_verification',?)").bind(id,slug,title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,admin.id).run();
   await audit(env,admin.id,"job_created","job",id,{title,employer,status:"pending_verification"});
   return json({ok:true,id,status:"pending_verification"},201);
  }
@@ -444,9 +444,9 @@ async function api(request,env) {
    if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
    if(!["owner","admin","editor"].includes(admin.role)) return json({error:"You do not have permission to edit vacancies."},403);
    const b=await request.json().catch(()=>null);
-   const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim();
+   const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim(), salary=String(b?.salary||"").trim(), salaryValue=!salary||/^nan$/i.test(salary)?null:salary;
    if(!title||!employer||!description||!validJobLink(source,request)||!validJobLink(application,request)) return json({error:"Title, employer, description and valid HTTPS source/application URLs are required."},400);
-   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=NULL,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,b.salary||null,description,b.qualifications||null,b.experience||null,source,application,b.deadline||null,new Date().toISOString(),jobId).run();
+   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=NULL,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,new Date().toISOString(),jobId).run();
    await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:"pending_verification"});
    return json({ok:true,status:"pending_verification"});
   }
