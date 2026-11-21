@@ -58,3 +58,39 @@
  .tendora-footer-bottom{align-items:flex-start;flex-direction:column}
 }
 @media(max-width:420px){.tendora-shared-header .mega-menu{grid-template-columns:1fr 1fr;column-gap:8px}.tendora-shared-header .menu-group a{font-size:12px;padding:8px 6px}.tendora-footer-directory{gap:22px 12px}.tendora-footer-group a{font-size:11px}}
+
+/* Visitor preference: compact theme selector */
+.tendora-shared-header .theme-control{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tendora-shared-header .theme-label{font-size:11px;font-weight:750;color:#68738a}
+.tendora-shared-header #tendora-theme{width:auto;min-width:78px;padding:7px 25px 7px 9px;border:1px solid #e1e6ef;border-radius:9px;background:#fff;color:#26334c;font-size:12px;font-weight:700;cursor:pointer}
+@media(max-width:760px){.tendora-shared-header .menu-toggle{margin-left:auto}.tendora-shared-header .theme-control{gap:4px}.tendora-shared-header .theme-label{display:none}.tendora-shared-header #tendora-theme{min-width:75px;padding:7px 19px 7px 8px;font-size:12px}}
+/* Dark theme shared across public Tendora pages */
+html[data-theme="dark"],html[data-theme="dark"] body{background:#0b1220!important;color:#e4eaf4!important;color-scheme:dark}
+html[data-theme="dark"] body{background-color:#0b1220!important}
+html[data-theme="dark"] .tendora-shared-header{background:#111c30!important;border-color:#26344d!important;box-shadow:0 4px 18px #0005!important}
+html[data-theme="dark"] .tendora-shared-header .brand{color:#f1f5fb!important}
+html[data-theme="dark"] .tendora-shared-header .nav-link,html[data-theme="dark"] .tendora-shared-header .services-menu>summary{color:#c2cde0!important}
+html[data-theme="dark"] .tendora-shared-header .theme-label{color:#aebbd1!important}
+html[data-theme="dark"] .tendora-shared-header #tendora-theme,html[data-theme="dark"] .tendora-shared-header .menu-toggle{background:#1b2940!important;color:#edf2fa!important;border-color:#34445f!important}
+html[data-theme="dark"] .tendora-shared-header .menu-toggle span{background:#edf2fa!important}
+html[data-theme="dark"] .tendora-shared-header .links,html[data-theme="dark"] .tendora-shared-header .mega-menu{background:#111c30!important;border-color:#2a3a55!important}
+html[data-theme="dark"] .tendora-shared-header .menu-group a{color:#d2dced!important}
+html[data-theme="dark"] .tendora-shared-header .menu-group a:hover,html[data-theme="dark"] .tendora-shared-header .services-menu[open]>summary{background:#1c2b46!important;color:#9db2ff!important}
+html[data-theme="dark"] .tendora-shared-header .btn{background:#1b2940!important;color:#edf2fa!important;border-color:#34445f!important}
+html[data-theme="dark"] .tendora-shared-header .btn.primary{background:#315cf5!important;color:#fff!important;border-color:#315cf5!important}
+html[data-theme="dark"] .tendora-shared-footer{background:#070d18!important}
+html[data-theme="dark"] .tendora-footer-group a,html[data-theme="dark"] .tendora-footer-bottom,html[data-theme="dark"] .tendora-footer-bottom a{color:#aebbd1!important}
+html[data-theme="dark"] main,html[data-theme="dark"] .main,html[data-theme="dark"] section{color:#dce5f3}
+html[data-theme="dark"] main h1,html[data-theme="dark"] main h2,html[data-theme="dark"] main h3,html[data-theme="dark"] main h4{color:#f0f4fb!important}
+html[data-theme="dark"] main p,html[data-theme="dark"] main li,html[data-theme="dark"] main label,html[data-theme="dark"] main small,html[data-theme="dark"] main .muted{color:#b7c4d8}
+html[data-theme="dark"] main .card,html[data-theme="dark"] main .panel,html[data-theme="dark"] main .tool-card,html[data-theme="dark"] main .upload-box,html[data-theme="dark"] main .drop-zone,html[data-theme="dark"] main .result-box,html[data-theme="dark"] main .section-card,html[data-theme="dark"] main .filters,html[data-theme="dark"] main .empty,html[data-theme="dark"] main form{background:#121e32!important;border-color:#2a3a55!important;color:#dce5f3!important}
+html[data-theme="dark"] main input,html[data-theme="dark"] main select,html[data-theme="dark"] main textarea{background:#0d1728!important;color:#edf2fa!important;border-color:#34445f!important}
+html[data-theme="dark"] main input::placeholder,html[data-theme="dark"] main textarea::placeholder{color:#8392aa!important}
+html[data-theme="dark"] main a:not(.btn):not(.apply){color:#9db2ff}
+html[data-theme="dark"] main .chip{background:#263650!important;color:#cbd7e9!important}
+html[data-theme="dark"] main .safety{background:#172945!important;border-color:#2b4772!important;color:#c5d5ef!important}
+html[data-theme="dark"] main .safety strong{color:#edf3ff!important}
+html[data-theme="dark"] main .deadline{background:#382b1c!important;color:#f3c78d!important}
+html[data-theme="dark"] main .deadline.soon{background:#3a2226!important;color:#ffb3ad!important}
+html[data-theme="dark"] main .source,html[data-theme="dark"] main .company,html[data-theme="dark"] main .meta,html[data-theme="dark"] main .disclaimer,html[data-theme="dark"] main .foot{color:#91a2bc!important}
+html[data-theme="dark"] main hr{border-color:#2a3a55!important}
