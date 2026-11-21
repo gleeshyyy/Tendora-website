@@ -419,8 +419,12 @@ async function api(request,env) {
   const rows=await env.DB.prepare("SELECT l.id,l.action,l.entity_type,l.entity_id,l.details_json,l.created_at,a.display_name AS admin_name,a.email AS admin_email FROM admin_audit_logs l LEFT JOIN admins a ON a.id=l.admin_id"+where+" ORDER BY l.created_at DESC,l.id DESC LIMIT ? OFFSET ?").bind(...binds,limit,offset).all();
   return json({logs:rows.results||[],total,page:safePage,totalPages,limit});
  }
+ if(path==="/api/admin/rejected-records" && method==="GET") {
+  const rows=await env.DB.prepare("SELECT j.id,j.title,j.employer,j.location,j.status,j.deadline,j.updated_at,(SELECT json_extract(l.details_json,'$.reason') FROM admin_audit_logs l WHERE l.entity_type='job' AND l.entity_id=j.id AND l.action='job_rejected' ORDER BY l.created_at DESC LIMIT 1) AS rejection_reason FROM jobs j WHERE j.status='rejected' ORDER BY j.updated_at DESC LIMIT 500").all();
+  return json({jobs:rows.results||[],count:(rows.results||[]).length});
+ }
  if(path==="/api/admin/jobs" && method==="GET") {
-  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs WHERE status<>'archived' ORDER BY updated_at DESC LIMIT 200").all();
+  const rows=await env.DB.prepare("SELECT id,title,employer,location,status,deadline,updated_at FROM jobs WHERE status NOT IN ('archived','rejected') ORDER BY updated_at DESC LIMIT 200").all();
   return json({jobs:rows.results||[]});
  }
  if(path==="/api/admin/recycle-bin" && method==="GET") {
@@ -451,9 +455,10 @@ async function api(request,env) {
    const b=await request.json().catch(()=>null);
    const title=String(b?.title||"").trim(), employer=String(b?.employer||"").trim(), description=String(b?.description||"").trim(), source=String(b?.sourceUrl||"").trim(), application=String(b?.applicationUrl||"").trim(), salary=String(b?.salary||"").trim(), salaryValue=!salary||/^nan$/i.test(salary)?null:salary;
    if(!title||!employer||!description||(source&&!validJobLink(source,request))||(application&&!validApplicationTarget(application,request))) return json({error:"Title, employer and description are required; a supplied source URL must be HTTPS and an application target must be a valid HTTPS link or email address."},400);
-   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=NULL,status='pending_verification',verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,new Date().toISOString(),jobId).run();
-   await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:"pending_verification"});
-   return json({ok:true,status:"pending_verification"});
+   const nextStatus=job.status==="rejected"?"rejected":"pending_verification";
+   await env.DB.prepare("UPDATE jobs SET title=?,employer=?,category=?,employment_type=?,location=?,salary_text=?,description=?,qualifications=?,experience=?,source_url=?,application_url=?,deadline=?,date_verified=NULL,status=?,verified_by=NULL,approved_by=NULL,published_at=NULL,updated_at=? WHERE id=?").bind(title,employer,b.category||null,b.employmentType||null,b.location||null,salaryValue,description,null,null,source,application,b.deadline||null,nextStatus,new Date().toISOString(),jobId).run();
+   await audit(env,admin.id,"job_updated","job",jobId,{title,previous_status:job.status,new_status:nextStatus});
+   return json({ok:true,status:nextStatus});
   }
   if(method==="POST" && action) {
    if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
@@ -470,9 +475,9 @@ async function api(request,env) {
    }
    if(action==="delete") {
     if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can delete published vacancies."},403);
-    if(job.status!=="published") return json({error:"Only published vacancies can be deleted from this list."},409);
+    if(job.status!=="published" && job.status!=="rejected") return json({error:"Only published or rejected vacancies can be moved to the Recycle Bin."},409);
     await env.DB.prepare("UPDATE jobs SET status='archived',updated_at=? WHERE id=?").bind(now,jobId).run();
-    await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived"});
+    await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived",previous_status:job.status});
     return json({ok:true,status:"archived"});
    }
    if(action==="restore") {
