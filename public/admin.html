@@ -469,7 +469,7 @@ document.addEventListener("keydown",e=>{if((e.key==="F5"||((e.ctrlKey||e.metaKey
   return clone;
  }
  function enhance(tbody){
-  if(!tbody)return;
+  if(!tbody||!window.matchMedia("(max-width:700px)").matches)return;
   const section=tbody.closest("section")?.id||tbody.id||"admin";
   for(const tr of tbody.rows){
    if(tr.dataset.mobileRecordReady||tr.querySelector("td[colspan]"))continue;
