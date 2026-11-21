@@ -1,8 +1,8 @@
 (()=> {
 const STYLE=`
-#tendora-chat-launcher{position:fixed;right:18px;bottom:18px;z-index:9998;border:0;border-radius:999px;background:#315cf5;color:#fff;padding:13px 18px;font:700 14px system-ui;box-shadow:0 8px 28px #17264a35;cursor:pointer}
+#tendora-chat-launcher{position:fixed;right:18px;bottom:82px;z-index:9998;border:0;border-radius:999px;background:#315cf5;color:#fff;padding:13px 18px;font:700 14px system-ui;box-shadow:0 8px 28px #17264a35;cursor:pointer}
 #tendora-chat-launcher .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:8px}
-#tendora-chat-panel{position:fixed;z-index:9999;right:18px;bottom:78px;width:min(370px,calc(100vw - 28px));height:min(560px,calc(100dvh - 110px));background:#fff;color:#17233d;border:1px solid #dfe5f0;border-radius:18px;box-shadow:0 16px 55px #101b3530;display:none;overflow:hidden;font:14px system-ui}
+#tendora-chat-panel{position:fixed;z-index:9999;right:18px;bottom:140px;width:min(370px,calc(100vw - 28px));height:min(560px,calc(100dvh - 110px));background:#fff;color:#17233d;border:1px solid #dfe5f0;border-radius:18px;box-shadow:0 16px 55px #101b3530;display:none;overflow:hidden;font:14px system-ui}
 #tendora-chat-panel.open{display:flex;flex-direction:column}
 #tendora-chat-panel *{box-sizing:border-box}
 .tchat-head{background:#101b35;color:white;padding:15px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -19,7 +19,7 @@ const STYLE=`
 .tchat-compose textarea{flex:1;min-width:0;max-height:90px;resize:vertical;border:1px solid #dce2ed;border-radius:10px;padding:10px;font:14px system-ui}
 .tchat-compose button{border:0;border-radius:9px;background:#315cf5;color:#fff;padding:10px 12px;font-weight:700}
 .tchat-file{font-size:20px;cursor:pointer;padding:5px}.tchat-status{font-size:11px;color:#718096;padding:0 12px 6px}.tchat-preview{display:none;align-items:center;gap:10px;padding:7px 12px}.tchat-preview.show{display:flex}.tchat-preview img{width:56px;height:48px;object-fit:cover;border-radius:7px}.tchat-preview button{border:0;background:#f1f3f8;color:#334;padding:6px 9px;border-radius:7px}.tchat-badge{display:inline-block;margin-left:7px;background:#e23d56;color:#fff;border-radius:20px;padding:2px 7px;font-size:11px}
-@media(max-width:480px){#tendora-chat-launcher{right:12px;bottom:14px}#tendora-chat-panel{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(590px,calc(100dvh - 85px))}}
+@media(max-width:480px){#tendora-chat-launcher{right:12px;bottom:76px}#tendora-chat-panel{right:8px;bottom:136px;width:calc(100vw - 16px);height:min(590px,calc(100dvh - 85px))}}
 `;
 const s=document.createElement("style");s.textContent=STYLE;document.head.appendChild(s);
 const launch=document.createElement("button");launch.id="tendora-chat-launcher";launch.innerHTML='<span class="dot"></span>Contact Us';
