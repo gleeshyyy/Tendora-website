@@ -9,8 +9,8 @@
 /* Mobile administration layout */
 .mobile-nav-toggle,.mobile-nav-backdrop{display:none}
 @media(max-width:700px){
-  body{overflow-x:hidden}
-  .sidebar{z-index:120;inset:0 auto 0 0;width:min(84vw,310px);padding:22px 16px;transform:translateX(-105%);transition:transform .22s ease;box-shadow:18px 0 45px #101b3530}
+  body{overflow-x:hidden}\n  body.mobile-admin-nav-open{overflow:hidden;overscroll-behavior:none;touch-action:none}
+  .sidebar{z-index:120;inset:0 auto 0 0;width:min(84vw,310px);height:100dvh;max-height:100dvh;padding:22px 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;transform:translateX(-105%);transition:transform .22s ease;box-shadow:18px 0 45px #101b3530}
   .sidebar.mobile-open{transform:translateX(0)}
   .sidebar .brand{font-size:23px;padding:0 12px 22px}
   .sidebar .brand:after{content:none}
@@ -19,10 +19,10 @@
   .nav button:before{content:none}
   .nav button span{display:inline}
   .side-bottom{display:block}
-  .mobile-nav-toggle{position:fixed;top:14px;left:12px;z-index:105;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--navy);font-size:22px;line-height:1}
+  .mobile-nav-toggle{position:fixed;top:14px;left:12px;z-index:130;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--navy);font-size:22px;line-height:1}
   .mobile-nav-backdrop{position:fixed;inset:0;z-index:110;background:#101b3566}
   .mobile-nav-backdrop.active{display:block}
-  .main{margin-left:0;padding:14px 12px 28px;width:100%;max-width:none}
+  .main{margin-left:0;padding:68px 12px 28px;width:100%;max-width:none}
   .top{gap:10px;align-items:center;margin-bottom:16px}
   .top>div:first-child{min-width:0;gap:8px!important}
   .top h1{font-size:19px;line-height:1.2}
@@ -202,8 +202,8 @@ const views=["overview","jobs","recyclebin","jobForm","jobEdit","discovery","sou
 function view(name){currentView=name;if(["overview","jobs","recyclebin","jobForm","jobEdit","discovery","sources","content","tools","admins","analytics","activity","settings","profile"].includes(name)){try{sessionStorage.setItem("tendora_admin_view",name)}catch{}}views.forEach(v=>$(v+"View").classList.toggle("hidden",v!==name));$("refreshView").classList.toggle("hidden",!["overview","jobs","recyclebin","discovery","sources","analytics","activity","admins","tools","settings","profile"].includes(name));$("viewTitle").textContent=({overview:"Overview",jobs:"Jobs & Vacancies",recyclebin:"Recycle Bin",jobForm:"Add a vacancy",jobEdit:"Edit vacancy",discovery:"Assisted Job Discovery",sources:"Manage Sources",content:"Website Content",tools:"Document Tools",admins:"Administrators",analytics:"Analytics",activity:"Activity Logs",settings:"Settings",profile:"My Profile"})[name]||name;document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===name));if(name==="jobs")loadJobs();if(name==="recyclebin")loadRecycleBin();if(name==="sources")loadSources();if(name==="discovery")loadDiscovery();if(name==="analytics")loadAnalytics();if(name==="activity"){activityPage=1;loadActivity()}if(name==="admins")loadAdministrators();if(name==="tools")loadTools();if(name==="settings")loadSettings();if(name==="profile")loadProfile();closeMobileAdminNav()}
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>view(b.dataset.view));
 const mobileNavToggle=$("mobileNavToggle"),mobileNavBackdrop=$("mobileNavBackdrop"),adminSidebar=$("adminSidebar");
-function closeMobileAdminNav(){if(!mobileNavToggle)return;adminSidebar.classList.remove("mobile-open");mobileNavBackdrop.classList.remove("active");mobileNavToggle.setAttribute("aria-expanded","false");mobileNavToggle.setAttribute("aria-label","Open admin navigation")}
-function toggleMobileAdminNav(){const open=!adminSidebar.classList.contains("mobile-open");adminSidebar.classList.toggle("mobile-open",open);mobileNavBackdrop.classList.toggle("active",open);mobileNavToggle.setAttribute("aria-expanded",String(open));mobileNavToggle.setAttribute("aria-label",open?"Close admin navigation":"Open admin navigation")}
+function closeMobileAdminNav(){if(!mobileNavToggle)return;adminSidebar.classList.remove("mobile-open");mobileNavBackdrop.classList.remove("active");document.body.classList.remove("mobile-admin-nav-open");mobileNavToggle.textContent="☰";mobileNavToggle.setAttribute("aria-expanded","false");mobileNavToggle.setAttribute("aria-label","Open admin navigation")}
+function toggleMobileAdminNav(){const open=!adminSidebar.classList.contains("mobile-open");adminSidebar.classList.toggle("mobile-open",open);mobileNavBackdrop.classList.toggle("active",open);document.body.classList.toggle("mobile-admin-nav-open",open);mobileNavToggle.textContent=open?"×":"☰";mobileNavToggle.setAttribute("aria-expanded",String(open));mobileNavToggle.setAttribute("aria-label",open?"Close admin navigation":"Open admin navigation")}
 mobileNavToggle.onclick=toggleMobileAdminNav;mobileNavBackdrop.onclick=closeMobileAdminNav;
 window.addEventListener("resize",()=>{if(window.innerWidth>700)closeMobileAdminNav()});
 
