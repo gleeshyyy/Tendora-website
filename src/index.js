@@ -252,7 +252,7 @@ async function api(request,env) {
  }
  if(path==="/api/tools" && method==="GET") {
   const rows=await env.DB.prepare("SELECT tool_key,display_name,description,category,featured FROM tool_settings WHERE enabled=1 AND tool_key!='background-remover' AND tool_key!='rotate-pdf' ORDER BY category,display_name").all();
-  return json({tools:rows.results||[]},200,{"cache-control":"public, max-age=60, s-maxage=60"});
+  return json({tools:rows.results||[]},200,{"cache-control":"no-store, no-cache, must-revalidate"});
  }
  const admin=await currentAdmin(request,env);
  if(!admin) return json({error:"Authentication required."},401);
