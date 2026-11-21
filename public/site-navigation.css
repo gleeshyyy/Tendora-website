@@ -99,3 +99,10 @@ html[data-theme="dark"] .section .card p,html[data-theme="dark"] .notice p,html[
 html[data-theme="dark"] .section .card a{color:#9db4ff!important}
 html[data-theme="dark"] .filters input,html[data-theme="dark"] .filters select{background:#0d1728!important;color:#edf2fa!important;border-color:#34445f!important}
 html[data-theme="dark"] .chip{background:#263650!important;color:#cbd7e9!important}
+
+/* Back-to-top button: shown only after meaningful scrolling. */
+.tendora-back-to-top{position:fixed;right:18px;bottom:20px;z-index:999;display:flex;align-items:center;gap:7px;padding:11px 15px;border:1px solid #dbe3f1;border-radius:999px;background:#fff;color:#24324b;font:700 13px/1 system-ui,sans-serif;box-shadow:0 5px 20px #15213b24;cursor:pointer;opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .18s ease,transform .18s ease,visibility .18s}
+.tendora-back-to-top.visible{opacity:1;visibility:visible;transform:translateY(0)}
+.tendora-back-to-top:focus-visible{outline:3px solid #5277ff;outline-offset:3px}
+html[data-theme="dark"] .tendora-back-to-top{background:#1b2940;color:#edf2fa;border-color:#34445f;box-shadow:0 5px 20px #0006}
+@media(max-width:600px){.tendora-back-to-top{right:14px;bottom:14px;padding:10px 13px}}
