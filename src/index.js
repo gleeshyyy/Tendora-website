@@ -270,7 +270,7 @@ async function api(request,env) {
   if(!/^[a-f0-9-]{36}$/i.test(id)||token.length<32) return json({error:"Conversation not found."},404);
   const conversation=await env.DB.prepare("SELECT id,visitor_name,visitor_token_hash FROM chat_conversations WHERE id=?").bind(id).first();
   if(!conversation || conversation.visitor_token_hash!==await digest(token)) return json({error:"Conversation not found."},404);
-  await env.DB.prepare("UPDATE chat_conversations SET admin_unread=0 WHERE id=?").bind(id).run();
+  await env.DB.prepare("UPDATE chat_conversations SET visitor_unread=0 WHERE id=?").bind(id).run();
   const rows=await env.DB.prepare("SELECT id,sender,body,attachment_type,attachment_name,attachment_size,attachment_expires_at,created_at FROM chat_messages WHERE conversation_id=? ORDER BY created_at ASC LIMIT 300").bind(id).all();
   const messages=(rows.results||[]).map(m=>({...m,imageUrl:m.attachment_type && m.attachment_expires_at && Date.parse(m.attachment_expires_at)>Date.now()?"/api/chat/image/"+m.id+"?conversationId="+encodeURIComponent(id)+"&token="+encodeURIComponent(token):null,imageExpired:!!m.attachment_type&&(!m.attachment_expires_at||Date.parse(m.attachment_expires_at)<=Date.now())}));
   return json({conversation:{id,name:conversation.visitor_name},messages});
@@ -332,7 +332,7 @@ async function api(request,env) {
   const conversation=await env.DB.prepare("SELECT id,visitor_name FROM chat_conversations WHERE id=?").bind(id).first();
   if(!conversation)return json({error:"Conversation not found."},404);
   if(method==="GET"&&!action) {
-   await env.DB.prepare("UPDATE chat_conversations SET visitor_unread=0 WHERE id=?").bind(id).run();
+   await env.DB.prepare("UPDATE chat_conversations SET admin_unread=0 WHERE id=?").bind(id).run();
    const rows=await env.DB.prepare("SELECT id,sender,body,attachment_type,attachment_name,attachment_size,attachment_expires_at,created_at FROM chat_messages WHERE conversation_id=? ORDER BY created_at ASC LIMIT 300").bind(id).all();
    const messages=(rows.results||[]).map(m=>({...m,imageUrl:m.attachment_type&&m.attachment_expires_at&&Date.parse(m.attachment_expires_at)>Date.now()?"/api/admin/messages/"+id+"/image/"+m.id:null,imageExpired:!!m.attachment_type&&(!m.attachment_expires_at||Date.parse(m.attachment_expires_at)<=Date.now())}));
    return json({conversation,messages});
