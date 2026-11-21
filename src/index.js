@@ -474,7 +474,7 @@ async function api(request,env) {
     return json({ok:true,status:"published"});
    }
    if(action==="delete") {
-    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can delete published vacancies."},403);
+    if(!["owner","admin"].includes(admin.role)) return json({error:"Only an owner or administrator can move published or rejected vacancies to the Recycle Bin."},403);
     if(job.status!=="published" && job.status!=="rejected") return json({error:"Only published or rejected vacancies can be moved to the Recycle Bin."},409);
     await env.DB.prepare("UPDATE jobs SET status='archived',updated_at=? WHERE id=?").bind(now,jobId).run();
     await audit(env,admin.id,"job_deleted","job",jobId,{title:job.title,method:"archived",previous_status:job.status});
