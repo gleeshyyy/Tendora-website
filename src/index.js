@@ -801,7 +801,7 @@ export default {
   headers.set("cloudflare-cdn-cache-control","no-store");
   headers.set("pragma","no-cache");
   headers.set("expires","0");
-  if(!html.includes("/chat-widget.js"))html=html.replace("</body>",'<script src="/chat-widget.js"></script></body>');
+  if(!html.includes("/chat-widget.js"))html=html.replace("</body>",'<script src="/chat-widget.js?v=301"></script></body>');
   return new Response(html.replace("</body>",analyticsTracker+"</body>"),{status:assetResponse.status,statusText:assetResponse.statusText,headers});
  }
 };
