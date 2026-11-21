@@ -637,7 +637,7 @@ export default {
  async fetch(request,env) {
   const url=new URL(request.url);
   if(["/background-remover","/background-remover/","/background-remover.html"].includes(url.pathname)||url.pathname.startsWith("/hf-models/")) return new Response("Not found.",{status:404,headers:{"cache-control":"no-store"}});
-  if(url.pathname==="/admin" || url.pathname==="/admin/") { const adminUrl=new URL("/admin.html",url); const adminRequest=new Request(adminUrl,request); const adminResponse=await env.ASSETS.fetch(adminRequest); const headers=new Headers(adminResponse.headers); headers.set("cache-control","no-store, no-cache, must-revalidate, max-age=0"); headers.set("cdn-cache-control","no-store"); return new Response(adminResponse.body,{status:adminResponse.status,statusText:adminResponse.statusText,headers}); }
+  if(url.pathname==="/admin" || url.pathname==="/admin/") { const adminUrl=new URL("/admin-panel",url); const adminRequest=new Request(adminUrl,request); const adminResponse=await env.ASSETS.fetch(adminRequest); const headers=new Headers(adminResponse.headers); headers.set("cache-control","no-store, no-cache, must-revalidate, max-age=0"); headers.set("cdn-cache-control","no-store"); headers.set("cloudflare-cdn-cache-control","no-store"); return new Response(adminResponse.body,{status:adminResponse.status,statusText:adminResponse.statusText,headers}); }
   if(url.pathname.startsWith("/api/")) {
    try { return await api(request,env); }
    catch(error) { console.error(JSON.stringify({event:"admin_api_error",message:String(error),path:url.pathname})); return json({error:"The request could not be completed."},500); }
