@@ -90,3 +90,12 @@ html[data-theme="dark"] main .chip{background:#263650!important;color:#cbd7e9!im
 html[data-theme="dark"] main hr{border-color:#2a3a55!important}
 html[data-theme="dark"] header:not(.tendora-shared-header){background:#111c30!important;border-color:#26344d!important}
 html[data-theme="dark"] header:not(.tendora-shared-header) a{color:#c2cde0!important}
+
+/* Dark theme refinements for the homepage and job directory */
+html[data-theme="dark"] .section.soft,html[data-theme="dark"] .cta{background:#0e192b!important}
+html[data-theme="dark"] .section .card,html[data-theme="dark"] .notice,html[data-theme="dark"] .jobs-card,html[data-theme="dark"] .empty,html[data-theme="dark"] .safety{background:#121e32!important;border-color:#2a3a55!important;color:#dce5f3!important}
+html[data-theme="dark"] .section .card h3,html[data-theme="dark"] .notice strong,html[data-theme="dark"] .safety strong{color:#f0f4fb!important}
+html[data-theme="dark"] .section .card p,html[data-theme="dark"] .notice p,html[data-theme="dark"] .disclaimer,html[data-theme="dark"] .seo-help{color:#b7c4d8!important}
+html[data-theme="dark"] .section .card a{color:#9db4ff!important}
+html[data-theme="dark"] .filters input,html[data-theme="dark"] .filters select{background:#0d1728!important;color:#edf2fa!important;border-color:#34445f!important}
+html[data-theme="dark"] .chip{background:#263650!important;color:#cbd7e9!important}
