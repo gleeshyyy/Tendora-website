@@ -39,7 +39,46 @@ function visitorNotice(title,message){let n=document.getElementById("tendora-cha
 function updateLaunch(){launch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.6-.85L4 19l.9-4.3A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11.5h8M8 14.5h5"/></svg>'+(unreadReplies?'<span class="tchat-launch-badge">'+(unreadReplies>99?"99+":unreadReplies)+'</span>':'');launch.setAttribute("aria-label",unreadReplies?"Contact Tendora, "+unreadReplies+" unread replies":"Contact Tendora")}
 function render(messages){const rw=document.documentElement.lang==="rw";list.innerHTML=(messages||[]).map(m=>'<div class="tchat-msg '+(m.sender==="visitor"?"mine":"")+'">'+(m.body?esc(m.body):"")+(m.imageUrl?'<img src="'+esc(m.imageUrl)+'" alt="Shared image">':m.imageExpired?'<div class="tchat-expired">'+(rw?"Iyi foto yarangiye igihe cyo kubikwa kandi ntikiboneka.":"This image has expired and is no longer available.")+'</div>':"")+'<time>'+esc(time(m.created_at))+'</time></div>').join("")||'<div class="tchat-msg">'+(rw?"Twandikire, turagusubiza hano.":"Send us a message and our team will reply here.")+'</div>';list.scrollTop=list.scrollHeight}
 function applyLanguage(){const rw=document.documentElement.lang==="rw"||localStorage.getItem("tendora_language")==="rw";launch.querySelector(".dot");updateLaunch();panel.querySelector(".tchat-head strong").textContent=rw?"Twandikire":"Contact Tendora";panel.querySelector(".tchat-head small").textContent=rw?"Twoherereze ubutumwa":"Send us a message";$(".tchat-warning").textContent=rw?"Icyitonderwa: Amafoto yose wohereje muri iki kiganiro azasibangana nyuma y’iminsi 3 uhereye igihe yoherejwe. Ibi bireba impande zombi.":"Image notice: Any image uploaded in this chat automatically disappears 3 days after upload. This applies to both you and our team.";nameInput.placeholder=rw?"Amazina yawe":"Your name";textarea.placeholder=rw?"Andika ubutumwa…":"Write a message…";panel.querySelector(".tchat-compose button").textContent=rw?"Ohereza":"Send";panel.querySelector(".tchat-remove").textContent=rw?"Kuraho":"Remove"}
-async function load(){if(!state?.conversationId||!state?.token)return;try{const r=await fetch("/api/chat/messages?conversationId="+encodeURIComponent(state.conversationId)+"&token="+encodeURIComponent(state.token),{cache:"no-store"});if(!r.ok){if(r.status===404){state=null;save();status.textContent="Your previous chat could not be restored. Please start a new message."}return}const d=await r.json();nameInput.value=d.conversation.name;const incoming=(d.messages||[]).filter(m=>m.sender==="admin"&&Date.parse(m.created_at)>lastAdminSeen);const newest=(d.messages||[]).filter(m=>m.sender==="admin").reduce((v,m)=>Math.max(v,Date.parse(m.created_at)||0),lastAdminSeen);if(!visitorChatLoaded){visitorChatLoaded=true;if(lastAdminSeen===0){lastAdminSeen=newest;lastAdminNotifiedAt=newest;try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}}}const fresh=incoming.filter(m=>Date.parse(m.created_at)>lastAdminNotifiedAt);if(fresh.length){visitorNotice("New Tendora reply",fresh.length===1?"You received a new message from Tendora.":"You received "+fresh.length+" new messages from Tendora.");lastAdminNotifiedAt=Math.max(...fresh.map(m=>Date.parse(m.created_at)||0))}if(panel.classList.contains("open")){lastAdminSeen=newest;lastAdminNotifiedAt=Math.max(lastAdminNotifiedAt,newest);try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}}if(panel.classList.contains("open")){unreadReplies=0;updateLaunch();render(d.messages)}else{unreadReplies=(d.messages||[]).filter(m=>m.sender==="admin"&&Date.parse(m.created_at)>lastAdminSeen).length;updateLaunch()}}catch{}}else if(incoming.length){if(!panel.classList.contains("open"))visitorNotice("New Tendora reply",incoming.length===1?"You received a new message from Tendora.":"You received "+incoming.length+" new messages from Tendora.");lastAdminSeen=newest;try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}}if(panel.classList.contains("open")){lastAdminSeen=newest;try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}unreadReplies=0;updateLaunch();render(d.messages)}else{unreadReplies=(d.messages||[]).filter(m=>m.sender==="admin"&&Date.parse(m.created_at)>lastAdminSeen-1).length;updateLaunch()}}catch{}}
+async function load(){
+ if(!state?.conversationId||!state?.token)return;
+ try{
+  const r=await fetch("/api/chat/messages?conversationId="+encodeURIComponent(state.conversationId)+"&token="+encodeURIComponent(state.token),{cache:"no-store"});
+  if(!r.ok){
+   if(r.status===404){state=null;save();status.textContent="Your previous chat could not be restored. Please start a new message."}
+   return;
+  }
+  const d=await r.json();
+  nameInput.value=d.conversation.name;
+  const admins=(d.messages||[]).filter(m=>m.sender==="admin");
+  const newest=admins.reduce((v,m)=>Math.max(v,Date.parse(m.created_at)||0),lastAdminSeen);
+  if(!visitorChatLoaded){
+   visitorChatLoaded=true;
+   if(lastAdminSeen===0){
+    lastAdminSeen=newest;
+    lastAdminNotifiedAt=newest;
+    try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}
+   }
+  }
+  const fresh=admins.filter(m=>{
+   const t=Date.parse(m.created_at)||0;
+   return t>lastAdminSeen&&t>lastAdminNotifiedAt;
+  });
+  if(fresh.length){
+   visitorNotice("New Tendora reply",fresh.length===1?"You received a new message from Tendora.":"You received "+fresh.length+" new messages from Tendora.");
+   lastAdminNotifiedAt=Math.max(...fresh.map(m=>Date.parse(m.created_at)||0));
+  }
+  if(panel.classList.contains("open")){
+   lastAdminSeen=newest;
+   lastAdminNotifiedAt=Math.max(lastAdminNotifiedAt,newest);
+   try{localStorage.setItem("tendora_chat_last_seen",String(lastAdminSeen))}catch{}
+   unreadReplies=0;
+   render(d.messages);
+  }else{
+   unreadReplies=admins.filter(m=>(Date.parse(m.created_at)||0)>lastAdminSeen).length;
+  }
+  updateLaunch();
+ }catch{}
+}
 async function start(){const n=nameInput.value.trim();if(n.length<2){status.textContent="Enter your name to start the chat.";nameInput.focus();return false}try{const r=await fetch("/api/chat/conversations",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:n})});const d=await r.json();if(!r.ok)throw Error(d.error||"Could not start chat.");state={conversationId:d.conversationId,token:d.token};save();return true}catch(e){status.textContent=e.message;return false}}
 launch.addEventListener("click",()=>{if("Notification"in window&&Notification.permission==="default")Notification.requestPermission().catch(()=>{});try{const C=window.AudioContext||window.webkitAudioContext;if(C){chatAudio=chatAudio||new C();if(chatAudio.state==="suspended")chatAudio.resume()}}catch{}panel.classList.add("open");launch.style.display="none";if(state?.conversationId)load()});
 $(".tchat-close").addEventListener("click",()=>{panel.classList.remove("open");launch.style.display=""});
