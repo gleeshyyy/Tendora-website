@@ -790,7 +790,11 @@ export default {
   const fs=html.indexOf("<footer"),fe=fs>=0?html.indexOf("</footer>",fs):-1;
   if(fs>=0&&fe>=0)html=html.slice(0,fs)+sharedFooterMarkup+html.slice(fe+9);
   else html=html.replace("</body>",sharedFooterMarkup+"</body>");
-  if(!html.includes("/site-navigation.css"))html=html.replace("</head>",sharedNavigationAssets+"</head>");
+  let pageAssets="";
+  if(!html.includes("/site-navigation.css"))pageAssets+='<link rel="stylesheet" href="/site-navigation.css">';
+  if(!html.includes("/site-navigation.js"))pageAssets+='<script defer src="/site-navigation.js"></script>';
+  if(!html.includes("/chat-widget.js"))pageAssets+='<script defer src="/chat-widget.js"></script>';
+  if(pageAssets)html=html.replace("</head>",pageAssets+"</head>");
   const headers=new Headers(assetResponse.headers);
   headers.delete("content-length");headers.delete("content-encoding");headers.delete("etag");headers.delete("last-modified");
   headers.set("cache-control","no-store, no-cache, must-revalidate, max-age=0");
