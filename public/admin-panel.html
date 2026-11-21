@@ -265,7 +265,7 @@ async function refreshMessageBadges(){
  if(!currentAdmin||!["owner","admin"].includes(currentAdmin.role))return;
  try{
   const d=await api("/api/admin/messages"),conversations=d.conversations||[];
-  if(adminChatSnapshot){const fresh=conversations.filter(x=>x.last_sender==='visitor'&&Number(x.admin_unread)>0&&(!adminChatSnapshot[x.id]||adminChatSnapshot[x.id]!==x.last_message_at));if(fresh.length)notifyAdminIncoming(fresh.length===1?'A visitor sent you a new message.':fresh.length+' new visitor messages received.');}
+  if(adminChatSnapshot){const fresh=conversations.filter(x=>x.last_sender==='visitor'&&(!adminChatSnapshot[x.id]||adminChatSnapshot[x.id]!==x.last_message_at));if(fresh.length)notifyAdminIncoming(fresh.length===1?'A visitor sent you a new message.':fresh.length+' new visitor messages received.');}
   adminChatSnapshot=Object.fromEntries(conversations.map(x=>[x.id,x.last_message_at]));
   chatConversations=conversations;
   const unread=conversations.reduce((n,c)=>n+Math.max(0,Number(c.admin_unread)||0),0);
